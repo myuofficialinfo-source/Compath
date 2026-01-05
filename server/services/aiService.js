@@ -59,7 +59,8 @@ const WORD_REPLACEMENTS = {
  * @returns {Promise<Object>} 要約結果
  */
 async function generateSummary(reviews, options = {}) {
-  const { mentalGuardMode = false } = options;
+  const { mentalGuardMode = false, lang = 'ja' } = options;
+  const isJa = lang === 'ja';
 
   const model = getGeminiModel();
 
@@ -79,7 +80,7 @@ async function generateSummary(reviews, options = {}) {
     .join('\n---\n');
 
   // メンタルガードモード用のプロンプト
-  const mentalGuardPrompt = mentalGuardMode ? `
+  const mentalGuardPrompt = mentalGuardMode ? (isJa ? `
 【重要：メンタルガードモード有効】
 あなたは傷つきやすい開発者を守る「優秀で冷静な秘書」です。
 以下のルールを厳守してください：
@@ -88,9 +89,18 @@ async function generateSummary(reviews, options = {}) {
 - ただし「バグ」「ラグ」「UI問題」などの重要な技術情報は残す
 - 淡々とした事務的なトーンで出力
 - 感情的な攻撃は一切含めない
-` : '';
+` : `
+[IMPORTANT: Mental Guard Mode Enabled]
+You are a calm, professional assistant protecting a sensitive developer.
+Follow these rules strictly:
+- Remove all insults, personal attacks, and profanity
+- Rephrase harsh criticism as "improvement suggestions"
+- Keep important technical info like "bugs", "lag", "UI issues"
+- Use a neutral, professional tone
+- Do not include any emotional attacks
+`) : '';
 
-  const prompt = `
+  const prompt = isJa ? `
 あなたはゲームレビューを分析する専門家です。正確で客観的な分析を提供してください。
 ${mentalGuardPrompt}
 
@@ -124,6 +134,52 @@ ${sampleNegative || 'なし'}
     {"point": "改善点4（日本語）", "quote": "根拠となるレビュー引用（日本語で短く）"},
     {"point": "改善点5（日本語）", "quote": "根拠となるレビュー引用（日本語で短く）"},
     {"point": "改善点6（日本語）", "quote": "根拠となるレビュー引用（日本語で短く）"}
+  ],
+  "categories": {
+    "gameplay": {"positive": 0, "negative": 0, "keywords": []},
+    "graphics": {"positive": 0, "negative": 0, "keywords": []},
+    "story": {"positive": 0, "negative": 0, "keywords": []},
+    "performance": {"positive": 0, "negative": 0, "keywords": []},
+    "price": {"positive": 0, "negative": 0, "keywords": []},
+    "controls": {"positive": 0, "negative": 0, "keywords": []},
+    "bugs": {"positive": 0, "negative": 0, "keywords": []},
+    "localization": {"positive": 0, "negative": 0, "keywords": []}
+  }
+}
+` : `
+You are an expert game review analyst. Provide accurate and objective analysis.
+${mentalGuardPrompt}
+
+[IMPORTANT]
+- All output must be in English
+- Translate reviews from any language (Japanese, Chinese, Korean, etc.) into English for analysis
+- Quotes must also be in English
+
+Below are Steam game reviews. Analyze and summarize them.
+
+[Positive Reviews (Sample)]
+${samplePositive || 'None'}
+
+[Negative Reviews (Sample)]
+${sampleNegative || 'None'}
+
+Respond in the following JSON format in English (6 good points and 6 bad points):
+{
+  "goodPoints": [
+    {"point": "Good point 1 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Good point 2 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Good point 3 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Good point 4 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Good point 5 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Good point 6 (English)", "quote": "Short quote from review (English)"}
+  ],
+  "badPoints": [
+    {"point": "Improvement 1 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Improvement 2 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Improvement 3 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Improvement 4 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Improvement 5 (English)", "quote": "Short quote from review (English)"},
+    {"point": "Improvement 6 (English)", "quote": "Short quote from review (English)"}
   ],
   "categories": {
     "gameplay": {"positive": 0, "negative": 0, "keywords": []},
@@ -200,7 +256,8 @@ ${reviewText}
  * @returns {Promise<Object>} キーワード結果
  */
 async function extractKeywords(reviewsData, options = {}) {
-  const { mentalGuardMode = false } = options;
+  const { mentalGuardMode = false, lang = 'ja' } = options;
+  const isJa = lang === 'ja';
   const reviews = reviewsData.reviews || reviewsData;
 
   const model = getGeminiModel();
@@ -213,14 +270,19 @@ async function extractKeywords(reviewsData, options = {}) {
   const positiveText = positiveReviews.map(r => r.review).join(' ');
   const negativeText = negativeReviews.map(r => r.review).join(' ');
 
-  const mentalGuardInstruction = mentalGuardMode ? `
+  const mentalGuardInstruction = mentalGuardMode ? (isJa ? `
 【メンタルガードモード】
 - 「クソ」「ゴミ」「金返せ」「詐欺」などの攻撃的な単語は除外
 - 攻撃的な形容詞を取り除き、名詞のみを抽出
 - 例：「クソ操作性」→「操作性」
-` : '';
+` : `
+[Mental Guard Mode]
+- Exclude offensive words like profanity, insults, and scam-related terms
+- Remove aggressive adjectives, extract only nouns
+- Example: "terrible controls" → "controls"
+`) : '';
 
-  const prompt = `
+  const prompt = isJa ? `
 ゲームレビューからキーワードを抽出する専門家として、以下のレビューテキストから頻出する重要なキーワードを抽出してください。
 ${mentalGuardInstruction}
 
@@ -244,6 +306,32 @@ ${negativeText.slice(0, 5000)}
   ],
   "negative": [
     {"word": "日本語キーワード", "score": 75, "count": 8}
+  ]
+}
+` : `
+As an expert in extracting keywords from game reviews, extract important frequently-occurring keywords from the following review text.
+${mentalGuardInstruction}
+
+[Extraction Rules]
+- Exclude overly generic words like "game", "fun", "recommend"
+- Extract nouns that describe features: "controls", "soundtrack", "bugs", "story", etc.
+- Rate each keyword's frequency (importance) with a score of 1-100
+- Maximum 30 keywords
+- [IMPORTANT] All keywords must be in English. Translate non-English keywords to English.
+
+[Positive Reviews]
+${positiveText.slice(0, 5000)}
+
+[Negative Reviews]
+${negativeText.slice(0, 5000)}
+
+Respond in the following JSON format with English keywords:
+{
+  "positive": [
+    {"word": "English keyword", "score": 85, "count": 12}
+  ],
+  "negative": [
+    {"word": "English keyword", "score": 75, "count": 8}
   ]
 }
 `;
@@ -271,7 +359,8 @@ ${negativeText.slice(0, 5000)}
  * @returns {Promise<Object>} キーワード結果（言及数・概要付き）
  */
 async function extractKeywordsDeep(reviewsData, options = {}) {
-  const { mentalGuardMode = false } = options;
+  const { mentalGuardMode = false, lang = 'ja' } = options;
+  const isJa = lang === 'ja';
   const reviews = reviewsData.reviews || reviewsData;
 
   const model = getGeminiModel();
@@ -284,12 +373,15 @@ async function extractKeywordsDeep(reviewsData, options = {}) {
   const positiveText = positiveReviews.map(r => r.review).join('\n---\n');
   const negativeText = negativeReviews.map(r => r.review).join('\n---\n');
 
-  const mentalGuardInstruction = mentalGuardMode ? `
+  const mentalGuardInstruction = mentalGuardMode ? (isJa ? `
 【メンタルガードモード】
 - 攻撃的な単語は除外し、建設的な表現に変換
-` : '';
+` : `
+[Mental Guard Mode]
+- Exclude offensive words and convert to constructive expressions
+`) : '';
 
-  const prompt = `
+  const prompt = isJa ? `
 ゲームレビューを分析して、主要なトピック/キーワードを抽出してください。
 ${mentalGuardInstruction}
 
@@ -317,6 +409,36 @@ ${negativeText.slice(0, 8000)}
   "negativeTopics": [
     {"keyword": "バグ", "count": 15, "summary": "セーブデータの破損や進行不能バグの報告が多い"},
     {"keyword": "価格", "count": 12, "summary": "ボリュームに対して価格が高いという意見が目立つ"}
+  ]
+}
+` : `
+Analyze the game reviews and extract the main topics/keywords.
+${mentalGuardInstruction}
+
+[Extraction Rules]
+- Exclude overly generic words like "game", "fun"
+- Extract topics related to game features and quality: "story", "controls", "graphics", "bugs", "price", "content length", "difficulty", "music", "characters", "UI", etc.
+- Count the number of mentions for each topic in the reviews
+- Write a 1-2 sentence summary of the review content for each topic
+- Maximum 10 topics (by importance)
+- [IMPORTANT] All output must be in English
+- [REQUIRED] positiveTopics and negativeTopics must be output. summary must not be empty - always include a sentence summarizing the review content.
+
+[Positive Reviews (${positiveReviews.length} reviews)]
+${positiveText.slice(0, 8000)}
+
+[Negative Reviews (${negativeReviews.length} reviews)]
+${negativeText.slice(0, 8000)}
+
+Respond in the following JSON format (summary is required for positiveTopics and negativeTopics):
+{
+  "positiveTopics": [
+    {"keyword": "Story", "count": 25, "summary": "The story development is excellent with an emotionally impactful ending"},
+    {"keyword": "Music", "count": 18, "summary": "The BGM is memorable and well-suited to each scene"}
+  ],
+  "negativeTopics": [
+    {"keyword": "Bugs", "count": 15, "summary": "Many reports of save data corruption and progress-blocking bugs"},
+    {"keyword": "Price", "count": 12, "summary": "Many feel the price is too high for the amount of content"}
   ]
 }
 `;
@@ -377,7 +499,9 @@ ${negativeText.slice(0, 8000)}
  * @param {string} appId - Steam AppID
  * @returns {Promise<Object>} コミュニティ分析結果
  */
-async function analyzeCommunityThreads(appId) {
+async function analyzeCommunityThreads(appId, options = {}) {
+  const { lang = 'ja' } = options;
+  const isJa = lang === 'ja';
   const axios = require('axios');
   const cheerio = require('cheerio');
 
@@ -413,7 +537,7 @@ async function analyzeCommunityThreads(appId) {
     const model = getGeminiModel();
     const threadList = threads.map(t => `- ${t.title} (${t.replies})`).join('\n');
 
-    const prompt = `
+    const prompt = isJa ? `
 以下はSteamゲームのコミュニティディスカッションスレッドのタイトル一覧です。
 これらを分析して、主要なトピック/話題を抽出し、言及数と概要を出力してください。
 
@@ -431,6 +555,26 @@ ${threadList}
   "topics": [
     {"topic": "バグ・不具合", "count": 8, "summary": "ゲームのクラッシュやセーブ関連の不具合報告が多い"},
     {"topic": "攻略・質問", "count": 6, "summary": "特定ボスの倒し方やアイテムの入手方法についての質問"}
+  ]
+}
+` : `
+Below is a list of Steam game community discussion thread titles.
+Analyze these and extract the main topics/subjects, outputting the mention count and summary.
+
+[Thread Title List]
+${threadList}
+
+[Output Rules]
+- Group similar topics and count them together
+- Example: "Bug report", "Issue", "Crash" → Group as "Bugs & Issues"
+- Maximum 10 topics
+- All output must be in English
+
+Respond in the following JSON format:
+{
+  "topics": [
+    {"topic": "Bugs & Issues", "count": 8, "summary": "Many reports of game crashes and save-related issues"},
+    {"topic": "Tips & Questions", "count": 6, "summary": "Questions about defeating specific bosses and obtaining items"}
   ]
 }
 `;

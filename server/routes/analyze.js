@@ -33,7 +33,7 @@ function getAppIdFromReviews(reviews) {
  */
 router.post('/summary', async (req, res) => {
   try {
-    const { reviews, mentalGuardMode, appId } = req.body;
+    const { reviews, mentalGuardMode, appId, lang } = req.body;
 
     if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
       return res.status(400).json({ error: 'レビューデータが必要です' });
@@ -41,7 +41,7 @@ router.post('/summary', async (req, res) => {
 
     // キャッシュキー用のappId
     const cacheAppId = appId || getAppIdFromReviews(reviews);
-    const cacheOptions = { mentalGuardMode: mentalGuardMode || false, reviewCount: reviews.length };
+    const cacheOptions = { mentalGuardMode: mentalGuardMode || false, reviewCount: reviews.length, lang: lang || 'ja' };
 
     // キャッシュをチェック
     if (cacheAppId) {
@@ -58,7 +58,8 @@ router.post('/summary', async (req, res) => {
 
     // AI分析を実行
     const summary = await aiService.generateSummary(reviews, {
-      mentalGuardMode: mentalGuardMode || false
+      mentalGuardMode: mentalGuardMode || false,
+      lang: lang || 'ja'
     });
 
     // キャッシュに保存
@@ -124,7 +125,7 @@ router.post('/transform', async (req, res) => {
  */
 router.post('/keywords', async (req, res) => {
   try {
-    const { reviews, mentalGuardMode, appId } = req.body;
+    const { reviews, mentalGuardMode, appId, lang } = req.body;
 
     if (!reviews || !Array.isArray(reviews)) {
       return res.status(400).json({ error: 'レビューデータが必要です' });
@@ -132,7 +133,7 @@ router.post('/keywords', async (req, res) => {
 
     // キャッシュキー用のappId
     const cacheAppId = appId || getAppIdFromReviews(reviews);
-    const cacheOptions = { mentalGuardMode: mentalGuardMode || false, reviewCount: reviews.length };
+    const cacheOptions = { mentalGuardMode: mentalGuardMode || false, reviewCount: reviews.length, lang: lang || 'ja' };
 
     // キャッシュをチェック
     if (cacheAppId) {
@@ -148,7 +149,8 @@ router.post('/keywords', async (req, res) => {
     }
 
     const keywords = await aiService.extractKeywords(reviews, {
-      mentalGuardMode: mentalGuardMode || false
+      mentalGuardMode: mentalGuardMode || false,
+      lang: lang || 'ja'
     });
 
     // キャッシュに保存
@@ -177,7 +179,7 @@ router.post('/keywords', async (req, res) => {
  */
 router.post('/keywords-deep', async (req, res) => {
   try {
-    const { reviews, mentalGuardMode, appId } = req.body;
+    const { reviews, mentalGuardMode, appId, lang } = req.body;
 
     if (!reviews || !Array.isArray(reviews)) {
       return res.status(400).json({ error: 'レビューデータが必要です' });
@@ -185,7 +187,7 @@ router.post('/keywords-deep', async (req, res) => {
 
     // キャッシュキー用のappId
     const cacheAppId = appId || getAppIdFromReviews(reviews);
-    const cacheOptions = { mentalGuardMode: mentalGuardMode || false, reviewCount: reviews.length };
+    const cacheOptions = { mentalGuardMode: mentalGuardMode || false, reviewCount: reviews.length, lang: lang || 'ja' };
 
     // キャッシュをチェック
     if (cacheAppId) {
@@ -201,7 +203,8 @@ router.post('/keywords-deep', async (req, res) => {
     }
 
     const keywords = await aiService.extractKeywordsDeep(reviews, {
-      mentalGuardMode: mentalGuardMode || false
+      mentalGuardMode: mentalGuardMode || false,
+      lang: lang || 'ja'
     });
 
     // キャッシュに保存
@@ -230,16 +233,17 @@ router.post('/keywords-deep', async (req, res) => {
  */
 router.post('/community', async (req, res) => {
   try {
-    const { appId } = req.body;
+    const { appId, lang } = req.body;
 
     if (!appId) {
       return res.status(400).json({ error: 'appIdが必要です' });
     }
 
-    // キャッシュをチェック
-    const cached = cacheService.get('community', appId);
+    // キャッシュをチェック（言語別）
+    const cacheKey = `${appId}_${lang || 'ja'}`;
+    const cached = cacheService.get('community', cacheKey);
     if (cached) {
-      console.log(`[Cache] Community cache hit for ${appId}`);
+      console.log(`[Cache] Community cache hit for ${cacheKey}`);
       return res.json({
         success: true,
         ...cached,
@@ -247,10 +251,10 @@ router.post('/community', async (req, res) => {
       });
     }
 
-    const result = await aiService.analyzeCommunityThreads(appId);
+    const result = await aiService.analyzeCommunityThreads(appId, { lang: lang || 'ja' });
 
-    // キャッシュに保存
-    cacheService.set('community', appId, result);
+    // キャッシュに保存（言語別）
+    cacheService.set('community', cacheKey, result);
 
     res.json({
       success: true,

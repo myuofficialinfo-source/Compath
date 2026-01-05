@@ -359,7 +359,7 @@ const API = {
     const response = await fetch('/api/analyze/keywords', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reviews, mentalGuardMode })
+      body: JSON.stringify({ reviews, mentalGuardMode, lang: Lang.current })
     });
 
     if (!response.ok) {
@@ -374,7 +374,7 @@ const API = {
     const response = await fetch('/api/analyze/summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reviews, mentalGuardMode, appId })
+      body: JSON.stringify({ reviews, mentalGuardMode, appId, lang: Lang.current })
     });
 
     if (!response.ok) {
@@ -394,7 +394,7 @@ const API = {
     const response = await fetch('/api/analyze/keywords-deep', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reviews, mentalGuardMode, appId })
+      body: JSON.stringify({ reviews, mentalGuardMode, appId, lang: Lang.current })
     });
 
     if (!response.ok) {
@@ -410,7 +410,7 @@ const API = {
       const response = await fetch('/api/analyze/community', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appId })
+        body: JSON.stringify({ appId, lang: Lang.current })
       });
 
       if (!response.ok) {
