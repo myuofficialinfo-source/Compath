@@ -53,7 +53,7 @@ app.use(express.urlencoded({ limit: '5mb', extended: true }));
 // レート制限（悪用防止）
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1分
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 30, // 1分あたり30リクエスト
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 10, // 1分あたり10リクエスト
   message: {
     error: 'リクエスト制限を超えました。しばらくお待ちください。',
     retryAfter: '1分後に再試行してください'
@@ -62,6 +62,35 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 1日あたりのリクエスト制限（グローバル）
+const DAILY_LIMIT = parseInt(process.env.DAILY_LIMIT) || 1000;
+let dailyRequestCount = 0;
+let lastResetDate = new Date().toDateString();
+
+// 日付が変わったらカウントをリセット
+const dailyLimiter = (req, res, next) => {
+  const today = new Date().toDateString();
+  if (today !== lastResetDate) {
+    dailyRequestCount = 0;
+    lastResetDate = today;
+    console.log(`[${new Date().toISOString()}] 日次リクエストカウントをリセット`);
+  }
+
+  if (dailyRequestCount >= DAILY_LIMIT) {
+    console.log(`[${new Date().toISOString()}] 日次制限到達: ${dailyRequestCount}/${DAILY_LIMIT}`);
+    return res.status(429).json({
+      error: '本日のリクエスト上限に達しました',
+      message: '明日また利用してください',
+      dailyLimit: DAILY_LIMIT,
+      resetTime: '日本時間0時にリセットされます'
+    });
+  }
+
+  dailyRequestCount++;
+  next();
+};
+
+app.use('/api', dailyLimiter);
 app.use('/api', limiter);
 
 // 静的ファイルの提供
