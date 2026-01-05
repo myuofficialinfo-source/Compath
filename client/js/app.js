@@ -841,6 +841,45 @@ const ReviewInsight = {
   renderGameInfo(gameInfo, stats) {
     const container = document.getElementById('game-info');
     const isJa = Lang.current === 'ja';
+
+    // ジャンル名の日本語→英語マッピング
+    const genreNamesEn = {
+      'アクション': 'Action',
+      'アドベンチャー': 'Adventure',
+      'カジュアル': 'Casual',
+      'インディー': 'Indie',
+      'レース': 'Racing',
+      'RPG': 'RPG',
+      'シミュレーション': 'Simulation',
+      'スポーツ': 'Sports',
+      'ストラテジー': 'Strategy',
+      '早期アクセス': 'Early Access',
+      '無料プレイ': 'Free to Play',
+      'MMO': 'MMO',
+      'デザイン＆イラスト': 'Design & Illustration',
+      'アニメーション＆モデリング': 'Animation & Modeling',
+      'ユーティリティ': 'Utilities',
+      'ビデオ制作': 'Video Production',
+      'オーディオ制作': 'Audio Production',
+      'ソフトウェアトレーニング': 'Software Training',
+      '写真編集': 'Photo Editing',
+      'ゲーム開発': 'Game Development',
+      'ウェブパブリッシング': 'Web Publishing',
+      '教育': 'Education',
+      'ドキュメンタリー': 'Documentary',
+      'チュートリアル': 'Tutorial',
+      'ショートムービー': 'Short',
+      '長編映画': 'Feature Film',
+      'プロジェクト管理': 'Project Management'
+    };
+
+    const translateGenres = (genres) => {
+      if (isJa || !genres) return genres;
+      return genres.map(g => genreNamesEn[g] || g);
+    };
+
+    const translatedGenres = translateGenres(gameInfo.genres);
+
     container.innerHTML = `
       <div class="game-info-header">
         <img src="${gameInfo.headerImage}" alt="${UI.escapeHtml(gameInfo.name)}" class="game-image">
@@ -849,7 +888,7 @@ const ReviewInsight = {
           <div class="game-meta">
             <span class="game-meta-item">📅 ${gameInfo.releaseDate || (isJa ? '発売日不明' : 'Release date unknown')}</span>
             <span class="game-meta-item">🏢 ${gameInfo.developers?.join(', ') || (isJa ? '開発元不明' : 'Developer unknown')}</span>
-            ${gameInfo.genres ? `<span class="game-meta-item">🎮 ${gameInfo.genres.slice(0, 3).join(', ')}</span>` : ''}
+            ${translatedGenres ? `<span class="game-meta-item">🎮 ${translatedGenres.slice(0, 3).join(', ')}</span>` : ''}
           </div>
           <div class="game-stats">
             <div class="stat-item">
@@ -1129,9 +1168,43 @@ const ReviewInsight = {
       return;
     }
 
+    // 言語名の英語版マッピング
+    const languageNamesEn = {
+      'japanese': 'Japanese',
+      'english': 'English',
+      'schinese': 'Simplified Chinese',
+      'tchinese': 'Traditional Chinese',
+      'korean': 'Korean',
+      'german': 'German',
+      'french': 'French',
+      'spanish': 'Spanish',
+      'latam': 'Spanish (Latin America)',
+      'russian': 'Russian',
+      'portuguese': 'Portuguese',
+      'brazilian': 'Brazilian Portuguese',
+      'italian': 'Italian',
+      'polish': 'Polish',
+      'thai': 'Thai',
+      'vietnamese': 'Vietnamese',
+      'turkish': 'Turkish',
+      'arabic': 'Arabic',
+      'dutch': 'Dutch',
+      'czech': 'Czech',
+      'hungarian': 'Hungarian',
+      'indonesian': 'Indonesian',
+      'ukrainian': 'Ukrainian'
+    };
+
+    const getLanguageName = (lang) => {
+      if (isJa) {
+        return lang.languageName; // サーバーから日本語名が来る
+      }
+      return languageNamesEn[lang.language] || lang.language;
+    };
+
     const rows = stats.byLanguage.map(lang => `
       <tr>
-        <td>${UI.escapeHtml(lang.languageName)}</td>
+        <td>${UI.escapeHtml(getLanguageName(lang))}</td>
         <td>${lang.total}</td>
         <td class="positive">${lang.positive}</td>
         <td class="negative">${lang.negative}</td>
