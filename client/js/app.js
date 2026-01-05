@@ -758,7 +758,8 @@ const ReviewInsight = {
     }
 
     try {
-      UI.showLoading('レビューを取得中...');
+      const isJa = Lang.current === 'ja';
+      UI.showLoading(isJa ? 'レビューを取得中...' : 'Fetching reviews...');
 
       // レビュー取得
       const reviewData = await API.fetchReviews(url, filters);
@@ -776,7 +777,7 @@ const ReviewInsight = {
       this.renderLanguageStats(reviewData.reviews.stats);
 
       // AI分析を並行実行（キーワード分析を深掘り版に変更）
-      UI.showLoading('AIで分析中...');
+      UI.showLoading(isJa ? 'AIで分析中...' : 'Analyzing with AI...');
 
       // キーワード深掘り分析（失敗時は従来版にフォールバック）
       // appIdを渡してキャッシュを有効化
@@ -839,24 +840,25 @@ const ReviewInsight = {
 
   renderGameInfo(gameInfo, stats) {
     const container = document.getElementById('game-info');
+    const isJa = Lang.current === 'ja';
     container.innerHTML = `
       <div class="game-info-header">
         <img src="${gameInfo.headerImage}" alt="${UI.escapeHtml(gameInfo.name)}" class="game-image">
         <div class="game-details">
           <h2 class="game-name">${UI.escapeHtml(gameInfo.name)}</h2>
           <div class="game-meta">
-            <span class="game-meta-item">📅 ${gameInfo.releaseDate || '発売日不明'}</span>
-            <span class="game-meta-item">🏢 ${gameInfo.developers?.join(', ') || '開発元不明'}</span>
+            <span class="game-meta-item">📅 ${gameInfo.releaseDate || (isJa ? '発売日不明' : 'Release date unknown')}</span>
+            <span class="game-meta-item">🏢 ${gameInfo.developers?.join(', ') || (isJa ? '開発元不明' : 'Developer unknown')}</span>
             ${gameInfo.genres ? `<span class="game-meta-item">🎮 ${gameInfo.genres.slice(0, 3).join(', ')}</span>` : ''}
           </div>
           <div class="game-stats">
             <div class="stat-item">
               <span class="stat-value positive">${stats.positiveRate}%</span>
-              <span class="stat-label">ポジティブ</span>
+              <span class="stat-label">${isJa ? 'ポジティブ' : 'Positive'}</span>
             </div>
             <div class="stat-item">
               <span class="stat-value negative">${100 - stats.positiveRate}%</span>
-              <span class="stat-label">ネガティブ</span>
+              <span class="stat-label">${isJa ? 'ネガティブ' : 'Negative'}</span>
             </div>
           </div>
         </div>
@@ -866,6 +868,7 @@ const ReviewInsight = {
 
   renderWordCloud(keywords) {
     const container = document.getElementById('wordcloud-section');
+    const isJa = Lang.current === 'ja';
 
     // カラーパレット（グラデーション風）
     const positiveColors = [
@@ -879,7 +882,7 @@ const ReviewInsight = {
 
     const renderWords = (words, type, colors) => {
       if (!words || words.length === 0) {
-        return '<p class="no-data">データがありません</p>';
+        return `<p class="no-data">${isJa ? 'データがありません' : 'No data available'}</p>`;
       }
 
       // countでソート（多い順）
@@ -898,7 +901,7 @@ const ReviewInsight = {
           <span class="cloud-word ${type}"
                 style="font-size: ${fontSize}px; color: ${color};"
                 data-word="${UI.escapeHtml(word.word)}"
-                title="${word.count ? word.count + '件の言及' : ''}">
+                title="${word.count ? word.count + (isJa ? '件の言及' : ' mentions') : ''}">
             ${UI.escapeHtml(word.word)}
           </span>
         `;
@@ -910,7 +913,7 @@ const ReviewInsight = {
         <div class="wordcloud-card positive">
           <h3 class="wordcloud-title positive">
             <span class="icon">👍</span>
-            ポジティブ・ワードクラウド
+            ${isJa ? 'ポジティブ・ワードクラウド' : 'Positive Word Cloud'}
           </h3>
           <div class="cloud-container positive-cloud">
             ${renderWords(keywords.positive, 'positive', positiveColors)}
@@ -919,7 +922,7 @@ const ReviewInsight = {
         <div class="wordcloud-card negative">
           <h3 class="wordcloud-title negative">
             <span class="icon">👎</span>
-            ネガティブ・ワードクラウド
+            ${isJa ? 'ネガティブ・ワードクラウド' : 'Negative Word Cloud'}
           </h3>
           <div class="cloud-container negative-cloud">
             ${renderWords(keywords.negative, 'negative', negativeColors)}
@@ -1669,14 +1672,24 @@ const StoreDoctor = {
   renderDiagnosisHeader(result) {
     const container = document.getElementById('diagnosis-header');
     const { gameInfo, totalScore, grade } = result;
+    const isJa = Lang.current === 'ja';
 
     const getMessage = (score) => {
-      if (score >= 90) return '素晴らしい！ストアページは完璧に近い状態です。';
-      if (score >= 80) return '合格ラインです。細かい改善でさらに良くなります。';
-      if (score >= 70) return '良好ですが、いくつかの改善点があります。';
-      if (score >= 60) return '改善が推奨されます。下記の指摘事項を確認してください。';
-      if (score >= 50) return '要改善です。重要な設定が不足しています。';
-      return '危険な状態です。早急に改善が必要です。';
+      if (isJa) {
+        if (score >= 90) return '素晴らしい！ストアページは完璧に近い状態です。';
+        if (score >= 80) return '合格ラインです。細かい改善でさらに良くなります。';
+        if (score >= 70) return '良好ですが、いくつかの改善点があります。';
+        if (score >= 60) return '改善が推奨されます。下記の指摘事項を確認してください。';
+        if (score >= 50) return '要改善です。重要な設定が不足しています。';
+        return '危険な状態です。早急に改善が必要です。';
+      } else {
+        if (score >= 90) return 'Excellent! Your store page is nearly perfect.';
+        if (score >= 80) return 'Good job! Minor improvements can make it even better.';
+        if (score >= 70) return 'Good, but there are some areas for improvement.';
+        if (score >= 60) return 'Improvements recommended. Check the notes below.';
+        if (score >= 50) return 'Needs work. Important settings are missing.';
+        return 'Critical state. Urgent improvements needed.';
+      }
     };
 
     container.innerHTML = `
@@ -1685,12 +1698,12 @@ const StoreDoctor = {
         <div class="diagnosis-game-info">
           <h2 class="diagnosis-game-name">${UI.escapeHtml(gameInfo.name)}</h2>
           <p class="diagnosis-game-meta">
-            ${gameInfo.developers?.join(', ') || '開発元不明'} | ${gameInfo.releaseDate || '発売日不明'}
+            ${gameInfo.developers?.join(', ') || (isJa ? '開発元不明' : 'Developer unknown')} | ${gameInfo.releaseDate || (isJa ? '発売日不明' : 'Release date unknown')}
           </p>
           <div class="score-display">
             <div class="score-circle animate" style="border-color: ${grade.color}">
               <span class="score-number" style="color: ${grade.color}">${totalScore}</span>
-              <span class="score-label">/ 100点</span>
+              <span class="score-label">/ 100${isJa ? '点' : ''}</span>
             </div>
             <div class="grade-display">
               <div class="grade-letter animate" style="color: ${grade.color}">${grade.letter}</div>
@@ -2122,9 +2135,10 @@ const BlueOcean = {
     }
 
     const freeText = document.getElementById('free-text').value.trim();
+    const isJa = Lang.current === 'ja';
 
     try {
-      UI.showLoading('市場を分析中...');
+      UI.showLoading(isJa ? '市場を分析中...' : 'Analyzing market...');
 
       const response = await fetch('/api/blue-ocean/analyze', {
         method: 'POST',
@@ -2286,15 +2300,16 @@ const BlueOcean = {
 
   renderCompetitors(competitors) {
     const container = document.getElementById('competitors-section');
+    const isJa = Lang.current === 'ja';
 
     if (!competitors || competitors.length === 0) {
       container.innerHTML = `
         <div class="competitors-section">
           <h3 class="competitors-title">
             <span>👑</span>
-            競合「四天王」
+            ${isJa ? '競合「四天王」' : 'Top Competitors'}
           </h3>
-          <p style="color: var(--text-secondary); padding: 20px;">競合データが見つかりませんでした。</p>
+          <p style="color: var(--text-secondary); padding: 20px;">${isJa ? '競合データが見つかりませんでした。' : 'No competitor data found.'}</p>
         </div>
       `;
       return;
@@ -2306,10 +2321,10 @@ const BlueOcean = {
         <div class="competitor-info">
           <div class="competitor-name">${UI.escapeHtml(comp.name)}</div>
           <div class="competitor-meta">
-            ${comp.releaseDate || '発売日不明'} | ${comp.developers?.join(', ') || '開発元不明'}
+            ${comp.releaseDate || (isJa ? '発売日不明' : 'Release unknown')} | ${comp.developers?.join(', ') || (isJa ? '開発元不明' : 'Developer unknown')}
           </div>
           <div class="competitor-reviews">
-            ⭐ ${comp.reviewCount?.toLocaleString() || '?'}件のレビュー | ${comp.positiveRate || '?'}%好評
+            ⭐ ${comp.reviewCount?.toLocaleString() || '?'}${isJa ? '件のレビュー' : ' reviews'} | ${comp.positiveRate || '?'}%${isJa ? '好評' : ' positive'}
           </div>
         </div>
       </div>
@@ -2319,7 +2334,7 @@ const BlueOcean = {
       <div class="competitors-section">
         <h3 class="competitors-title">
           <span>👑</span>
-          競合「四天王」
+          ${isJa ? '競合「四天王」' : 'Top Competitors'}
         </h3>
         ${competitorCards}
       </div>
@@ -2328,6 +2343,7 @@ const BlueOcean = {
 
   renderAIAnalysis(analysis) {
     const container = document.getElementById('ai-analysis');
+    const isJa = Lang.current === 'ja';
 
     if (!analysis) {
       container.innerHTML = '';
@@ -2335,7 +2351,7 @@ const BlueOcean = {
     }
 
     const renderList = (items) => {
-      if (!items || items.length === 0) return '<li>データなし</li>';
+      if (!items || items.length === 0) return `<li>${isJa ? 'データなし' : 'No data'}</li>`;
       return items.map(item => `<li>${UI.escapeHtml(item)}</li>`).join('');
     };
 
@@ -2343,38 +2359,38 @@ const BlueOcean = {
       <div class="ai-analysis-section">
         <h3 class="competitors-title">
           <span>🤖</span>
-          AI市場分析
+          ${isJa ? 'AI市場分析' : 'AI Market Analysis'}
         </h3>
         <div class="analysis-grid">
           <div class="analysis-card">
             <h4 class="analysis-card-title">
-              <span>💪</span> 市場の強み
+              <span>💪</span> ${isJa ? '市場の強み' : 'Market Strengths'}
             </h4>
             <ul>${renderList(analysis.marketStrengths)}</ul>
           </div>
           <div class="analysis-card">
             <h4 class="analysis-card-title">
-              <span>⚠️</span> 市場のリスク
+              <span>⚠️</span> ${isJa ? '市場のリスク' : 'Market Risks'}
             </h4>
             <ul>${renderList(analysis.marketRisks)}</ul>
           </div>
           <div class="analysis-card">
             <h4 class="analysis-card-title">
-              <span>🎯</span> 差別化ポイント
+              <span>🎯</span> ${isJa ? '差別化ポイント' : 'Differentiation Points'}
             </h4>
             <ul>${renderList(analysis.differentiationPoints)}</ul>
           </div>
           <div class="analysis-card">
             <h4 class="analysis-card-title">
-              <span>👥</span> ターゲット層
+              <span>👥</span> ${isJa ? 'ターゲット層' : 'Target Audience'}
             </h4>
             <ul>${renderList(analysis.targetAudience)}</ul>
           </div>
           <div class="analysis-card winning-strategy">
             <h4 class="analysis-card-title">
-              <span>🏆</span> 勝ち筋
+              <span>🏆</span> ${isJa ? '勝ち筋' : 'Winning Strategy'}
             </h4>
-            <p>${UI.escapeHtml(analysis.winningStrategy || '分析中...')}</p>
+            <p>${UI.escapeHtml(analysis.winningStrategy || (isJa ? '分析中...' : 'Analyzing...'))}</p>
           </div>
         </div>
       </div>
@@ -2383,6 +2399,7 @@ const BlueOcean = {
 
   renderPivotSuggestions(pivots) {
     const container = document.getElementById('pivot-section');
+    const isJa = Lang.current === 'ja';
 
     if (!pivots || pivots.length === 0) {
       container.innerHTML = '';
@@ -2405,7 +2422,7 @@ const BlueOcean = {
       <div class="pivot-section">
         <h3 class="competitors-title">
           <span>💡</span>
-          空席のピボット提案
+          ${isJa ? '空席のピボット提案' : 'Pivot Suggestions'}
         </h3>
         ${pivotCards}
       </div>
