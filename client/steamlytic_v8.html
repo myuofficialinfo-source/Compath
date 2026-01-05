@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEAM 分析マン - Market Analysis Tool</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M2 10c0-4 4-8 10-8s10 4 10 8c0 3-2 5-5 5-2 0-3-2-5-2-2 0-3 2-5 2-3 0-5-2-5-5z%22/><path d=%22M7 10h3l1 2 1-2h3%22/><path d=%22M12 2v6%22/></svg>">
+
+    <!-- React & ReactDOM (Pinned versions) -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Prop Types -->
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Recharts -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+
+    <!-- dom-to-image for Better PNG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#15202e', 950: '#020617' }
+                    },
+                    animation: {
+                        'slide-in': 'slideIn 0.3s ease-out forwards',
+                        'fade-out': 'fadeOut 0.3s ease-in forwards',
+                    },
+                    keyframes: {
+                        slideIn: {
+                            '0%': { transform: 'translateX(100%)', opacity: 0 },
+                            '100%': { transform: 'translateX(0)', opacity: 1 },
+                        },
+                        fadeOut: {
+                            '0%': { opacity: 1 },
+                            '100%': { opacity: 0 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        *:focus { outline: none !important; }
+        .recharts-sector:focus { outline: none !important; }
+        .recharts-wrapper:focus { outline: none !important; }
+        .recharts-surface:focus { outline: none !important; }
+        .recharts-layer:focus { outline: none !important; }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-200 antialiased min-h-screen overflow-x-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, useCallback, useRef } = React;
+        const {
+            LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+            ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell,
+            BarChart, Bar, Legend, ScatterChart, Scatter, ZAxis, ReferenceLine, ComposedChart
+        } = window.Recharts;
+
+        // --- ICONS ---
+        const Icon = ({ path, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{path}</svg>
+        );
+
+        const Icons = {
+            Search: (p) => <Icon path={<><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>} {...p} />,
+            RefreshCw: (p) => <Icon path={<><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></>} {...p} />,
+            Plus: (p) => <Icon path={<><line x1="12" x2="12" y1="5" y2="19" /><line x1="5" x2="19" y1="12" y2="12" /></>} {...p} />,
+            X: (p) => <Icon path={<><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>} {...p} />,
+            Activity: (p) => <Icon path={<><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></>} {...p} />,
+            Database: (p) => <Icon path={<><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></>} {...p} />,
+            FolderPlus: (p) => <Icon path={<><path d="M12 10v6" /><path d="M9 13h6" /><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></>} {...p} />,
+            FolderOpen: (p) => <Icon path={<><path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" /></>} {...p} />,
+            ExternalLink: (p) => <Icon path={<><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" x2="21" y1="14" y2="3" /></>} {...p} />,
+            FileDown: (p) => <Icon path={<><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></>} {...p} />,
+            Trash: (p) => <Icon path={<><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></>} {...p} />,
+            LayoutDashboard: (p) => <Icon path={<><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></>} {...p} />,
+            ListFilter: (p) => <Icon path={<><path d="M3 6h18" /><path d="M7 12h10" /><path d="M10 18h4" /></>} {...p} />,
+            Info: (p) => <Icon path={<><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></>} {...p} />,
+            Calculator: (p) => <Icon path={<><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></>} {...p} />,
+            Calendar: (p) => <Icon path={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></>} {...p} />,
+            Layers: (p) => <Icon path={<><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>} {...p} />,
+            LayoutGrid: (p) => <Icon path={<><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></>} {...p} />,
+            Folder: (p) => <Icon path={<><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" /></>} {...p} />,
+            CheckCircle2: (p) => <Icon path={<><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></>} {...p} />,
+            ArrowRight: (p) => <Icon path={<><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></>} {...p} />,
+            ShoppingCart: (p) => <Icon path={<><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></>} {...p} />,
+            Gamepad2: (p) => <Icon path={<><line x1="6" x2="10" y1="11" y2="11" /><line x1="8" x2="8" y1="9" y2="13" /><line x1="15" x2="15.01" y1="12" y2="12" /><line x1="18" x2="18.01" y1="10" y2="10" /><path d="M17.3 2.9A8 8 0 1 1 4 10.5a4.8 4.8 0 0 1 10-2.4 2.8 2.8 0 0 0 3.3 0C19.8 6.6 18.5 4 17.3 2.9Z" /></>} {...p} />,
+            DollarSign: (p) => <Icon path={<><line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></>} {...p} />,
+            Users: (p) => <Icon path={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>} {...p} />,
+            TrendingUp: (p) => <Icon path={<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></>} {...p} />,
+            BarChart3: (p) => <Icon path={<><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></>} {...p} />,
+            Edit: (p) => <Icon path={<><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></>} {...p} />,
+            Image: (p) => <Icon path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></>} {...p} />,
+            RotateCcw: (p) => <Icon path={<><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12" /><path d="M3 3v9h9" /></>} {...p} />,
+            Grid: (p) => <Icon path={<><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></>} {...p} />,
+            List: (p) => <Icon path={<><line x1="8" x2="21" y1="6" y2="6" /><line x1="8" x2="21" y1="12" y2="12" /><line x1="8" x2="21" y1="18" y2="18" /><line x1="3" x2="3.01" y1="6" y2="6" /><line x1="3" x2="3.01" y1="12" y2="12" /><line x1="3" x2="3.01" y1="18" y2="18" /></>} {...p} />,
+            Maximize2: (p) => <Icon path={<><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" x2="14" y1="3" y2="10" /><line x1="3" x2="10" y1="21" y2="14" /></>} {...p} />,
+            Scale: (p) => <Icon path={<><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></>} {...p} />,
+            Settings: (p) => <Icon path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></>} {...p} />,
+            Trash2: (p) => <Icon path={<><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></>} {...p} />,
+            Hero: (p) => <Icon path={<><path d="M2 10c0-4 4-8 10-8s10 4 10 8c0 3-2 5-5 5-2 0-3-2-5-2-2 0-3 2-5 2-3 0-5-2-5-5z" /><path d="M7 10h3l1 2 1-2h3" /><path d="M12 2v6" /></>} {...p} />,
+            ArrowUp: (p) => <Icon path={<><line x1="12" x2="12" y1="19" y2="5" /><polyline points="5 12 12 5 19 12" /></>} {...p} />,
+            ArrowDown: (p) => <Icon path={<><line x1="12" x2="12" y1="5" y2="19" /><polyline points="19 12 12 19 5 12" /></>} {...p} />,
+            Target: (p) => <Icon path={<><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>} {...p} />,
+            Home: (p) => <Icon path={<><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></>} {...p} />,
+            Tag: (p) => <Icon path={<><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" /><path d="M7 7h.01" /></>} {...p} />,
+            Crown: (p) => <Icon path={<><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" /></>} {...p} />,
+            ChevronDown: (p) => <Icon path={<><polyline points="6 9 12 15 18 9" /></>} {...p} />,
+            ChevronRight: (p) => <Icon path={<><polyline points="9 18 15 12 9 6" /></>} {...p} />,
+            Camera: (p) => <Icon path={<><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></>} {...p} />,
+            Hash: (p) => <Icon path={<><line x1="4" x2="20" y1="9" y2="9" /><line x1="4" x2="20" y1="15" y2="15" /><line x1="10" x2="8" y1="3" y2="21" /><line x1="16" x2="14" y1="3" y2="21" /></>} {...p} />,
+            HelpCircle: (p) => <Icon path={<><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></>} {...p} />,
+            Eye: (p) => <Icon path={<><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>} {...p} />,
+            EyeOff: (p) => <Icon path={<><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" x2="22" y1="2" y2="22" /></>} {...p} />,
+            Filter: (p) => <Icon path={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></>} {...p} />,
+            Save: (p) => <Icon path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></>} {...p} />,
+            Copy: (p) => <Icon path={<><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></>} {...p} />,
+            Edit3: (p) => <Icon path={<><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></>} {...p} />,
+            Type: (p) => <Icon path={<><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></>} {...p} />,
+            Table: (p) => <Icon path={<><path d="M12 3v18" /><path d="M3 9h18" /><path d="M3 15h18" /><rect x="3" y="3" width="18" height="18" rx="2" /></>} {...p} />,
+            MoreHorizontal: (p) => <Icon path={<><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></>} {...p} />,
+            MoreVertical: (p) => <Icon path={<><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></>} {...p} />,
+            FileText: (p) => <Icon path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><line x1="10" x2="8" y1="9" y2="9" /></>} {...p} />,
+        };
+
+        const SortIcon = ({ colKey, sortConfig }) => {
+            if (sortConfig.key !== colKey) return <span className="ml-1 text-slate-600">↕</span>;
+            return sortConfig.direction === 'ascending' ? <Icons.ArrowUp className="w-3 h-3 ml-1 text-blue-400 inline" /> : <Icons.ArrowDown className="w-3 h-3 ml-1 text-blue-400 inline" />;
+        };
+
+        // --- HELPERS & API ---
+        const CORS_PROXY = "https://corsproxy.io/?";
+        const formatYen = (n) => new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(n);
+        const formatNumber = (n) => new Intl.NumberFormat('ja-JP').format(n);
+        const formatDate = (s) => s ? new Date(s).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }) : "-";
+
+        const calculateReviewColor = (score) => {
+            if (score >= 95) return 'text-blue-400';
+            if (score >= 80) return 'text-green-400';
+            if (score >= 70) return 'text-lime-400';
+            if (score >= 40) return 'text-yellow-400';
+            return 'text-red-500';
+        };
+        const getReviewText = (score) => {
+            if (score >= 95) return '圧倒的に好評';
+            if (score >= 80) return '非常に好評';
+            if (score >= 70) return 'やや好評';
+            if (score >= 40) return '賛否両論';
+            return '不評';
+        };
+
+        const fetchWithRetry = async (url, retries = 3, delay = 1000, signal = null, responseType = 'json') => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url, { signal });
+                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    return responseType === 'json' ? await res.json() : await res.text();
+                } catch (err) {
+                    if (err.name === 'AbortError') throw err;
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, delay * (i + 1)));
+                }
+            }
+        };
+
+        const fetchGame = async (id, multiplier = 35, aspFactor = 0.7) => {
+            try {
+                // Fetch basic info, players, and reviews
+                const [sJ, cJ, rJ, html] = await Promise.all([
+                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${id}&cc=jp&l=japanese`)}`).then(j => j && j[id] && j[id].success ? j[id].data : null),
+                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${id}`)}`).then(j => j && j.response ? j.response.player_count : 0),
+                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/appreviews/${id}?json=1&language=all`)}`).then(j => j && j.query_summary ? j.query_summary : null),
+                    // Fetch HTML to scrape popular user tags
+                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/app/${id}/?l=japanese`)}`, 3, 1000, null, 'text')
+                ]);
+
+                if (!sJ) return null;
+
+                const d = sJ;
+                const ccu = cJ || 0;
+
+                let reviews = 0;
+                let reviewScore = 0;
+                if (rJ) {
+                    reviews = rJ.total_reviews;
+                    if (rJ.total_reviews > 0) {
+                        reviewScore = Math.round((rJ.total_positive / rJ.total_reviews) * 100);
+                    }
+                } else {
+                    reviews = Math.floor(ccu * 20);
+                    reviewScore = 50;
+                }
+
+                let p = 0;
+                if (d.price_overview) {
+                    p = d.price_overview.initial / 100;
+                }
+
+                let releaseDate = "Unknown";
+                if (d.release_date && d.release_date.date) {
+                    const dateObj = new Date(d.release_date.date);
+                    if (!isNaN(dateObj.getTime())) {
+                        releaseDate = dateObj.toISOString().split('T')[0];
+                    } else {
+                        releaseDate = d.release_date.date;
+                    }
+                }
+
+                // Parse User Tags from HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const userTags = Array.from(doc.querySelectorAll('.app_tag'))
+                    .map(el => el.textContent.trim())
+                    .filter(t => t && t !== '+');
+
+                const estimatedSales = reviews * multiplier;
+                const estimatedRevenue = estimatedSales * p * aspFactor;
+                const estimatedWL = Math.round(reviews * 15);
+
+                // Calculate months from release date to now
+                let monthsFromRelease = 24; // default
+                let startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - 23);
+
+                if (releaseDate && releaseDate !== "Unknown") {
+                    const relDate = new Date(releaseDate);
+                    const now = new Date();
+                    if (!isNaN(relDate.getTime())) {
+                        const diffMonths = (now.getFullYear() - relDate.getFullYear()) * 12 + (now.getMonth() - relDate.getMonth());
+                        monthsFromRelease = Math.max(1, Math.min(diffMonths + 1, 60)); // 1~60 months
+                        startDate = new Date(relDate);
+                    }
+                }
+
+                const hist = Array.from({ length: monthsFromRelease }, (_, i) => {
+                    const dt = new Date(startDate);
+                    dt.setMonth(dt.getMonth() + i);
+                    const monthProgress = i / (monthsFromRelease - 1);
+                    const growthCurve = Math.pow(monthProgress, 1.5);
+                    const baseSales = Math.floor(reviews / monthsFromRelease);
+                    const salesValue = baseSales * growthCurve * (0.8 + Math.random() * 0.4);
+                    const playersValue = Math.floor(ccu * growthCurve * (0.5 + Math.random() * 1.0));
+                    return {
+                        name: `${String(dt.getMonth() + 1).padStart(2, '0')}/'${String(dt.getFullYear()).slice(-2)}`,
+                        sales: Math.max(1, Math.floor(salesValue)),
+                        players: Math.max(1, playersValue),
+                        displayDate: `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+                    };
+                });
+
+                return {
+                    id: parseInt(id),
+                    title: d.name,
+                    developer: d.developers ? d.developers[0] : "不明",
+                    publisher: d.publishers ? d.publishers[0] : "不明",
+                    price: p,
+                    reviews,
+                    reviewScore,
+                    headerImage: d.header_image,
+                    description: d.short_description || "説明文はありません。",
+                    screenshots: d.screenshots || [],
+                    genres: d.genres ? d.genres.map(g => g.description) : ["Game"],
+                    userTags: userTags.length > 0 ? userTags : (d.genres ? d.genres.map(g => g.description) : ["Game"]),
+                    categories: d.categories ? d.categories.map(c => c.description) : [],
+                    peak: ccu,
+                    releaseDate,
+                    estimatedSales,
+                    estimatedRevenue,
+                    estimatedWL,
+                    history: hist,
+                    lastSync: new Date().toISOString()
+                };
+            } catch (e) {
+                console.error(`Fetch failed for ${id}:`, e);
+                return null;
+            }
+        };
+
+        // --- TOAST PROVIDER ---
+        const ToastContext = React.createContext();
+
+        const ToastProvider = ({ children }) => {
+            const [toasts, setToasts] = useState([]);
+
+            const addToast = (message, type = 'info', progress = null) => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type, progress }]);
+                if (type !== 'loading') {
+                    setTimeout(() => removeToast(id), 4000);
+                }
+                return id;
+            };
+
+            const updateToast = (id, updates) => {
+                setToasts(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+                if (updates.type && updates.type !== 'loading') {
+                    setTimeout(() => removeToast(id), 4000);
+                }
+            };
+
+            const removeToast = (id) => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            };
+
+            return (
+                <ToastContext.Provider value={{ addToast, updateToast, removeToast }}>
+                    {children}
+                    <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none w-80 max-w-[90vw]">
+                        {toasts.map(toast => (
+                            <div key={toast.id} className={`pointer-events-auto px-4 py-3 rounded-lg shadow-lg text-sm font-bold flex flex-col gap-1 animate-slide-in ${toast.type === 'success' ? 'bg-green-600 text-white' :
+                                toast.type === 'error' ? 'bg-red-600 text-white' :
+                                    'bg-slate-800 border border-slate-700 text-white'
+                                }`}>
+                                <div className="flex items-center gap-2">
+                                    {toast.type === 'success' && <Icons.CheckCircle2 className="w-4 h-4 flex-shrink-0" />}
+                                    {toast.type === 'error' && <Icons.X className="w-4 h-4 flex-shrink-0" />}
+                                    {toast.type === 'loading' && <Icons.RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />}
+                                    {toast.type === 'info' && <Icons.Info className="w-4 h-4 flex-shrink-0" />}
+                                    <span className="break-words">{toast.message}</span>
+                                </div>
+                                {toast.progress !== null && (
+                                    <div className="w-full bg-slate-900/50 rounded-full h-1.5 mt-1 overflow-hidden">
+                                        <div className="bg-white/80 h-full transition-all duration-300" style={{ width: `${toast.progress}%` }}></div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </ToastContext.Provider>
+            );
+        };
+
+        const useToast = () => React.useContext(ToastContext);
+
+        // --- UI COMPONENTS ---
+
+        const HelpModal = ({ isOpen, onClose, title, message }) => {
+            useEffect(() => {
+                if (!isOpen) return;
+                const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [isOpen, onClose]);
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-sm shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><Icons.Info className="w-5 h-5 text-blue-400" /> {title}</h3>
+                        <div className="text-slate-400 text-sm whitespace-pre-wrap leading-relaxed">{message}</div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ConfigModal = ({ isOpen, onClose, config, onSave, onReset, openHelp }) => {
+            const [localConfig, setLocalConfig] = useState(config);
+            useEffect(() => setLocalConfig(config), [config, isOpen]);
+            useEffect(() => {
+                if (!isOpen) return;
+                const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); if (e.key === 'Enter') onSave(localConfig); };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [isOpen, onClose, onSave, localConfig]);
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-sm shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Settings className="w-5 h-5 text-slate-400" /> 分析設定</h3>
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-1">Boxleiter係数<button onClick={() => openHelp('Boxleiter係数', '総レビュー数から販売本数を推定するための係数です。')} className="text-slate-500 hover:text-blue-400"><Icons.HelpCircle className="w-3.5 h-3.5" /></button></label>
+                                <div className="flex items-center gap-3"><input type="range" min="20" max="60" value={localConfig.multiplier} onChange={(e) => setLocalConfig({ ...localConfig, multiplier: parseInt(e.target.value) })} className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" /><span className="text-blue-400 font-mono font-bold w-8 text-right">{localConfig.multiplier}</span></div>
+                            </div>
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-1">ASP係数<button onClick={() => openHelp('ASP係数', '定価に対して、実際にユーザーが支払った平均単価の割合です。')} className="text-slate-500 hover:text-green-400"><Icons.HelpCircle className="w-3.5 h-3.5" /></button></label>
+                                <div className="flex items-center gap-3"><input type="range" min="0.3" max="1.0" step="0.05" value={localConfig.aspFactor} onChange={(e) => setLocalConfig({ ...localConfig, aspFactor: parseFloat(e.target.value) })} className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500" /><span className="text-green-400 font-mono font-bold w-8 text-right">{Math.round(localConfig.aspFactor * 100)}%</span></div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-3"><div className="flex justify-end gap-3 mb-2"><button onClick={() => onSave(localConfig)} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors w-full">保存して再計算</button></div><div className="border-t border-slate-800 pt-4"><button onClick={onReset} className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-900/50 text-red-500 hover:bg-red-900/20 transition-colors text-sm"><Icons.Trash2 className="w-4 h-4" /> 全データを削除して初期化</button></div></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CalculatorView = ({ onBack }) => {
+            const [params, setParams] = useState({
+                reviews: 1000,
+                multiplier: 30,
+                price: 2000,
+                aspFactor: 0.7,
+                regionalPriceFactor: 0.85,
+                vatRate: 0.10,
+                refundRate: 0.08,
+                marketingBudget: 500000,
+                devCost: 2000000,
+                publisherCut: 0.3,
+            });
+
+            const handleChange = (key, val) => setParams(prev => ({ ...prev, [key]: Number(val) }));
+
+            const results = useMemo(() => {
+                const sales = params.reviews * params.multiplier;
+                const grossRev = sales * params.price * params.aspFactor * params.regionalPriceFactor;
+                const refundLoss = grossRev * params.refundRate;
+                const afterRefund = grossRev - refundLoss;
+                const tax = afterRefund * params.vatRate;
+                const netAfterTax = afterRefund - tax;
+
+                const JPY_10M = 1500000000;
+                const JPY_50M = 7500000000;
+                let steamFee = 0;
+                if (netAfterTax <= JPY_10M) {
+                    steamFee = netAfterTax * 0.3;
+                } else if (netAfterTax <= JPY_50M) {
+                    steamFee = (JPY_10M * 0.3) + ((netAfterTax - JPY_10M) * 0.25);
+                } else {
+                    steamFee = (JPY_10M * 0.3) + ((JPY_50M - JPY_10M) * 0.25) + ((netAfterTax - JPY_50M) * 0.2);
+                }
+
+                const afterSteam = netAfterTax - steamFee;
+                const pubCut = afterSteam * params.publisherCut;
+                const developerNet = afterSteam - pubCut;
+                const finalProfit = developerNet - params.marketingBudget - params.devCost;
+
+                return {
+                    sales, grossRev, refundLoss, tax, steamFee, pubCut, developerNet, finalProfit,
+                    pieData: [
+                        { name: '開発元', value: Math.max(0, developerNet), fill: '#4ade80' },
+                        { name: '出版社', value: pubCut, fill: '#6366f1' },
+                        { name: 'Steam', value: steamFee, fill: '#3b82f6' },
+                        { name: '税金', value: tax, fill: '#f43f5e' },
+                        { name: '返品', value: refundLoss, fill: '#94a3b8' },
+                    ]
+                };
+            }, [params]);
+
+            return (
+                <div className="animate-fade-in pb-20">
+                    <div className="flex items-center gap-6 mb-10">
+                        <button onClick={onBack} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all shadow-xl hover:bg-slate-800"><Icons.ArrowRight className="w-5 h-5 rotate-180" /></button>
+                        <div>
+                            <h2 className="text-3xl font-black text-white flex items-center gap-3"><Icons.Calculator className="w-8 h-8 text-blue-500" /> 収益シミュレーター <span className="text-blue-500/50 font-mono text-sm tracking-tighter uppercase">Pro version</span></h2>
+                            <p className="text-slate-500 text-sm font-medium mt-1">詳細な財務パラメータに基づき、収益性をシミュレーションします</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-6">
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-800 pb-3 flex items-center gap-2"><Icons.Database className="w-3.5 h-3.5" /> 推計パラメータ</h3>
+                                <div className="space-y-4">
+                                    <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">レビュー数 / 係数</label><div className="flex gap-2"><input type="number" value={params.reviews} onChange={e => handleChange('reviews', e.target.value)} className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500 outline-none" /><input type="number" value={params.multiplier} onChange={e => handleChange('multiplier', e.target.value)} className="w-20 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-blue-400 font-mono text-sm focus:border-blue-500 outline-none" /></div></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">定価 (JPY)</label><input type="number" value={params.price} onChange={e => handleChange('price', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500 outline-none" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">ASP係数</label><input type="number" step="0.05" value={params.aspFactor} onChange={e => handleChange('aspFactor', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-green-400 font-mono text-sm focus:border-blue-500 outline-none" /></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">地域補正</label><input type="number" step="0.01" value={params.regionalPriceFactor} onChange={e => handleChange('regionalPriceFactor', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">税率</label><input type="number" step="0.01" value={params.vatRate} onChange={e => handleChange('vatRate', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">返品率</label><input type="number" step="0.01" value={params.refundRate} onChange={e => handleChange('refundRate', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">PUB率</label><input type="number" step="0.05" value={params.publisherCut} onChange={e => handleChange('publisherCut', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                    </div>
+                                    <div className="pt-4 border-t border-slate-800">
+                                        <label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">開発・広告費</label>
+                                        <div className="flex gap-2"><div className="flex-1"><input type="number" value={params.devCost} onChange={e => handleChange('devCost', e.target.value)} placeholder="開発費" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-red-400 font-mono text-sm focus:border-blue-500 outline-none" /></div><div className="flex-1"><input type="number" value={params.marketingBudget} onChange={e => handleChange('marketingBudget', e.target.value)} placeholder="広告" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-red-400 font-mono text-sm focus:border-blue-500 outline-none" /></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="lg:col-span-8 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                                    <div className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-4">推定総売上 (Gross)</div>
+                                    <div className="text-4xl font-black text-white font-mono break-all">{formatYen(results.grossRev)}</div>
+                                    <div className="mt-6 flex items-center gap-4 text-blue-100/80 text-xs font-bold"><span className="bg-white/10 px-2 py-1 rounded">販売数: {formatNumber(results.sales)}</span><span className="bg-white/10 px-2 py-1 rounded">実効単価: {formatYen(results.grossRev / results.sales)}</span></div>
+                                </div>
+                                <div className="bg-gradient-to-br from-emerald-600 to-green-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                                    <div className="text-[10px] font-black text-green-100 uppercase tracking-widest mb-4">最終利益 (Profit)</div>
+                                    <div className="text-4xl font-black text-white font-mono break-all">{formatYen(results.finalProfit)}</div>
+                                    <div className="mt-6 flex items-center gap-4 text-green-100/80 text-xs font-bold"><span className="bg-white/10 px-2 py-1 rounded">ROI: {((results.finalProfit / (params.devCost + params.marketingBudget)) * 100 || 0).toFixed(1)}%</span><span className="bg-white/10 px-2 py-1 rounded">{results.finalProfit >= 0 ? '黒字' : '赤字'}</span></div>
+                                </div>
+                            </div>
+                            <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center gap-10">
+                                <div className="w-full md:w-1/2 h-64"><ResponsiveContainer><PieChart><Pie data={results.pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">{results.pieData.map((e, i) => <Cell key={i} fill={e.fill} />)}</Pie><Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }} formatter={(v) => formatYen(v)} /></PieChart></ResponsiveContainer></div>
+                                <div className="w-full md:w-1/2 space-y-3">
+                                    <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-widest">収益の内訳</h4>
+                                    {results.pieData.map((it, idx) => (
+                                        <div key={idx} className="flex justify-between text-sm"><div className="flex items-center gap-2 text-slate-500"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: it.fill }}></div>{it.name}</div><div className="font-mono text-white">{formatYen(it.value)}</div></div>
+                                    ))}
+                                    <div className="pt-4 mt-4 border-t border-slate-800 flex justify-between text-sm font-bold"><span className="text-slate-400">開発元 純収益額</span><span className="text-emerald-400 font-mono">{formatYen(results.developerNet)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+
+        const DialogModal = ({ isOpen, type, title, message, onConfirm, onCancel, inputValue, setInputValue }) => {
+            useEffect(() => {
+                if (!isOpen) return;
+                const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); if (e.key === 'Enter') onConfirm(); };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [isOpen, onCancel, onConfirm]);
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onCancel}>
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-sm shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+                        <p className="text-slate-400 text-sm mb-6 whitespace-pre-wrap">{message}</p>
+                        {type === 'prompt' && (<input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none mb-6" autoFocus />)}
+                        <div className="flex justify-end gap-3">{(type === 'confirm' || type === 'prompt') && <button onClick={onCancel} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">キャンセル</button>}<button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors">OK</button></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ImageModal = ({ src, onClose }) => {
+            useEffect(() => {
+                if (!src) return;
+                const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [src, onClose]);
+            if (!src) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-950/95 z-[110] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="relative max-w-5xl w-full max-h-screen" onClick={e => e.stopPropagation()}>
+                        <img src={src} className="w-full h-full object-contain rounded-lg shadow-2xl" />
+                        <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-black/80"><Icons.X /></button>
+                    </div>
+                </div>
+            );
+        };
+
+        const AddGameModal = ({ isOpen, onClose, onAdd, activeListName }) => {
+            const [input, setInput] = useState('');
+            useEffect(() => {
+                if (!isOpen) return;
+                const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { if (input.trim()) { onAdd(input); setInput(''); } } };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [isOpen, onClose, onAdd, input]);
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-md shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Plus className="w-5 h-5 text-blue-500" /> ゲームを追加</h3>
+                        <p className="text-xs text-slate-400 mb-4 leading-relaxed">Steam App IDを入力してください（カンマ、改行、スペース区切り可）。<br /><span className="text-blue-400">現在選択中のリスト: {activeListName || '全てのゲーム'}</span> に追加されます。</p>
+                        <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-white font-mono h-24 focus:border-blue-500 outline-none mb-4 placeholder-slate-600" placeholder="例: 730, 570"></textarea>
+                        <button onClick={() => { if (input.trim()) { onAdd(input); setInput(''); } }} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-all">追加を実行</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const ListManagerModal = ({ isOpen, onClose, game, lists, onToggleList }) => {
+            useEffect(() => {
+                if (!isOpen) return;
+                const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [isOpen, onClose]);
+            if (!isOpen || !game) return null;
+            return (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-sm shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
+                        <h3 className="font-bold text-white mb-1">リスト管理</h3>
+                        <p className="text-xs text-slate-400 mb-4 truncate">{game.title}</p>
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            {lists.length === 0 && <p className="text-sm text-slate-500 text-center py-4">リストがありません。<br />ダッシュボードで作成してください。</p>}
+                            {lists.map(list => (
+                                <label key={list.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer border border-transparent hover:border-slate-600 transition-colors">
+                                    <input type="checkbox" checked={list.gameIds.includes(game.id)} onChange={() => onToggleList(list.id, game.id)} className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-0" />
+                                    <span className={`text-sm ${list.gameIds.includes(game.id) ? 'text-white font-bold' : 'text-slate-400'} truncate`}>{list.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const SearchBar = ({ onDirectAdd, addedGameIds = [] }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [suggestions, setSuggestions] = useState([]);
+            const [isSuggestOpen, setIsSuggestOpen] = useState(false);
+            const debounceTimer = useRef(null);
+            const abortControllerRef = useRef(null);
+
+            const handleSearchChange = (e) => {
+                const val = e.target.value;
+                setSearchTerm(val);
+                if (val.length < 2) {
+                    setSuggestions([]);
+                    setIsSuggestOpen(false);
+                    return;
+                }
+                if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                if (abortControllerRef.current) abortControllerRef.current.abort();
+
+                debounceTimer.current = setTimeout(async () => {
+                    abortControllerRef.current = new AbortController();
+                    try {
+                        const targetUrl = `https://store.steampowered.com/search/suggest?term=${encodeURIComponent(val)}&f=games&cc=JP&l=japanese`;
+                        const res = await fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`, { signal: abortControllerRef.current.signal });
+                        if (!res.ok) throw new Error('Network response was not ok');
+                        const html = await res.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, "text/html");
+                        const items = Array.from(doc.querySelectorAll('a.match')).map(a => {
+                            const id = a.getAttribute('data-ds-appid');
+                            const name = a.querySelector('.match_name').textContent;
+                            const price = a.querySelector('.match_price').textContent;
+                            const img = a.querySelector('.match_img img').src;
+                            return { id, name, price, img };
+                        }).filter(i => i.id);
+                        setSuggestions(items);
+                        setIsSuggestOpen(true);
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error("Suggest fetch error", err);
+                        }
+                    }
+                }, 300);
+            };
+
+            const handleSuggestClick = (game) => {
+                if (addedGameIds.includes(parseInt(game.id))) return;
+                if (onDirectAdd) onDirectAdd(game.id.toString());
+                setSearchTerm('');
+                setSuggestions([]);
+                setIsSuggestOpen(false);
+            };
+
+            const handleBlur = () => {
+                setTimeout(() => {
+                    setIsSuggestOpen(false);
+                }, 200);
+            };
+
+            return (
+                <div className="relative w-full md:w-80 lg:w-96">
+                    <div className="relative">
+                        <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            onBlur={handleBlur}
+                            onFocus={() => { if (searchTerm.length >= 2) setIsSuggestOpen(true); }}
+                            placeholder="Steamストアを検索して追加..."
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                    {isSuggestOpen && suggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto no-capture">
+                            {suggestions.map((game, i) => {
+                                const isAdded = addedGameIds.includes(parseInt(game.id));
+                                return (
+                                    <div key={i} className={`flex items-center gap-3 p-3 border-b border-slate-800 last:border-none ${isAdded ? 'opacity-50 cursor-default bg-slate-800/30' : 'hover:bg-slate-800 cursor-pointer'}`} onClick={() => !isAdded && handleSuggestClick(game)}>
+                                        <img src={game.img} className="w-12 h-6 object-cover rounded" alt="" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-bold text-white truncate">{game.name}</div>
+                                            <div className="text-xs text-slate-500">
+                                                <span>ID: {game.id}</span>
+                                            </div>
+                                        </div>
+                                        {isAdded ? (
+                                            <Icons.CheckCircle2 className="w-5 h-5 text-green-500" />
+                                        ) : (
+                                            <Icons.Plus className="w-4 h-4 text-blue-500" />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Header = ({
+            setView, view, onUpdateClick, isUpdating, activeList, activeListId, lists, setActiveListId,
+            canUpdate, onAddGame, onOpenConfig, onOpenCalculator, onDirectAdd, addedGameIds,
+            createList, renameList, deleteList, viewMode, setViewMode
+        }) => {
+            return (
+                <header className="bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-50 py-3 shadow-2xl">
+                    <div className="max-w-[1600px] mx-auto px-4 md:px-6 flex items-center justify-between gap-4">
+                        {/* LEFT: Branding */}
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3 cursor-pointer group select-none" onClick={() => setView('dashboard')}>
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-blue-500 blur opacity-20 group-hover:opacity-40 transition-opacity rounded-full"></div>
+                                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-1.5 rounded-lg relative shadow-xl">
+                                        <Icons.Hero className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-col">
+                                    <h1 className="text-lg font-black tracking-tight text-white leading-none">
+                                        STEAM<span className="text-blue-500">分析マン</span>
+                                    </h1>
+                                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">Market Strategy Tool</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MIDDLE: List Management (Center focus) */}
+                        <div className="flex items-center gap-2 flex-1 justify-center max-w-xl">
+                            <div className="flex items-center gap-1 bg-slate-800/50 border border-slate-700 p-1 rounded-2xl shadow-inner w-full">
+                                <button
+                                    onClick={() => { setActiveListId(null); setView('dashboard'); }}
+                                    className={`p-2 rounded-xl transition-all ${activeListId === null ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`}
+                                    title="すべてのゲーム"
+                                >
+                                    <Icons.Home className="w-4 h-4" />
+                                </button>
+                                <div className="relative flex-1">
+                                    <select
+                                        value={activeListId || ""}
+                                        onChange={(e) => { setActiveListId(e.target.value || null); setView('dashboard'); }}
+                                        className="w-full appearance-none bg-transparent text-white pl-3 pr-8 py-1.5 rounded-lg font-bold text-sm cursor-pointer outline-none"
+                                    >
+                                        <option value="" className="bg-slate-900 text-white text-sm">（すべて表示）</option>
+                                        {lists.map(l => <option key={l.id} value={l.id} className="bg-slate-900 text-white text-sm">{l.name}</option>)}
+                                    </select>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><Icons.ChevronDown className="w-3.5 h-3.5" /></div>
+                                </div>
+                                <div className="flex items-center gap-0.5 border-l border-slate-700 ml-1 pl-1">
+                                    <button onClick={createList} className="p-2 text-slate-500 hover:text-blue-400 transition-colors" title="新規リスト"><Icons.Plus className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Steam Search & Tools */}
+                        <div className="flex items-center gap-2 md:gap-3">
+                            <div className="hidden xl:block">
+                                <SearchBar onDirectAdd={onDirectAdd} addedGameIds={addedGameIds} />
+                            </div>
+
+                            <div className="flex items-center gap-1 md:gap-2 border-l border-slate-800 pl-2 md:pl-3 ml-1 md:ml-2">
+                                {isUpdating && (
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+                                        <Icons.RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                                        <span className="text-[10px] font-bold text-blue-400">更新中...</span>
+                                    </div>
+                                )}
+
+                                <div className="h-6 w-px bg-slate-800 mx-1 hidden md:block"></div>
+
+                                <div className="flex items-center bg-slate-800/50 rounded-xl p-0.5 border border-slate-700">
+                                    <button
+                                        onClick={() => setViewMode('table')}
+                                        className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                                        title="テーブル表示"
+                                    >
+                                        <Icons.Table className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('card')}
+                                        className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                                        title="カード表示"
+                                    >
+                                        <Icons.LayoutGrid className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                <button onClick={() => setView('calculator')} className={`p-2 transition-all ${view === 'calculator' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`} title="収益シミュレーター"><Icons.Calculator className="w-4 h-4" /></button>
+                                <button
+                                    onClick={() => setView('compare')}
+                                    className={`p-2 transition-all ${view === 'compare' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
+                                    title="分析比較 (Battle Mode)"
+                                >
+                                    <Icons.Scale className="w-4 h-4" />
+                                </button>
+
+                                <div className="h-6 w-px bg-slate-800 mx-1 hidden md:block"></div>
+
+                                <button onClick={onOpenConfig} className="p-2 text-slate-500 hover:text-white transition-colors hidden sm:block" title="係数設定"><Icons.Settings className="w-4 h-4" /></button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const CompareView = ({ lists, games, onBack }) => {
+            const [selectedListIds, setSelectedListIds] = useState(lists.map(l => l.id));
+            const toggleListSelection = (id) => {
+                setSelectedListIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+            };
+            const comparisonStats = useMemo(() => {
+                const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#a855f7', '#ec4899', '#6366f1'];
+                return lists.map((list, index) => {
+                    const targetGames = games.filter(g => list.gameIds.includes(g.id));
+                    if (targetGames.length === 0) return null;
+                    const sortedRev = [...targetGames].sort((a, b) => a.estimatedRevenue - b.estimatedRevenue);
+                    const medianRev = sortedRev.length % 2 !== 0 ? sortedRev[Math.floor(sortedRev.length / 2)].estimatedRevenue : (sortedRev[sortedRev.length / 2 - 1].estimatedRevenue + sortedRev[sortedRev.length / 2].estimatedRevenue) / 2;
+
+                    const totalRev = targetGames.reduce((sum, g) => sum + g.estimatedRevenue, 0);
+                    const avgPeak = targetGames.reduce((sum, g) => sum + (g.peak || g.ccu || 0), 0) / targetGames.length;
+
+                    return {
+                        id: list.id,
+                        name: list.name,
+                        count: targetGames.length,
+                        avgRev: totalRev / targetGames.length,
+                        medianRev,
+                        avgScore: targetGames.reduce((sum, g) => sum + g.reviewScore, 0) / targetGames.length,
+                        avgPeak,
+                        fill: COLORS[index % COLORS.length],
+                        games: targetGames.map(game => ({
+                            x: game.reviewScore,
+                            y: game.estimatedRevenue,
+                            title: game.title,
+                            z: 100,
+                            isBlueOcean: game.reviewScore >= 80 && game.estimatedRevenue < medianRev // Simple logic for "Blue Ocean"
+                        })),
+                        selected: selectedListIds.includes(list.id)
+                    };
+                }).filter(Boolean);
+            }, [lists, games, selectedListIds]);
+
+            const chartData = comparisonStats.filter(s => s.selected);
+
+            return (
+                <div className="animate-fade-in pb-20">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 gap-6">
+                        <div className="flex items-center gap-6">
+                            <button onClick={onBack} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all shadow-xl hover:bg-slate-800"><Icons.ArrowRight className="w-5 h-5 rotate-180" /></button>
+                            <div>
+                                <h2 className="text-3xl font-black text-white flex items-center gap-3"><Icons.Scale className="w-8 h-8 text-blue-500" /> 分析比較 <span className="text-blue-500/50 font-mono text-sm tracking-tighter uppercase">Battle Mode</span></h2>
+                                <p className="text-slate-500 text-sm font-medium mt-1">選択した分析リスト間の重要指標を横断的に比較します</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                        <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10"><Icons.DollarSign className="text-green-500" /> 収益性ベンチマーク <span className="text-[10px] opacity-50">(平均 / 中央値)</span></h3>
+                            <div className="h-80 relative z-10">
+                                <ResponsiveContainer>
+                                    <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 40, left: 20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                                        <XAxis type="number" stroke="#475569" fontSize={10} tickFormatter={(val) => `¥${(val / 1000000).toFixed(0)}M`} />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={100} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)' }}
+                                            formatter={(val) => formatYen(val)}
+                                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                        />
+                                        <Bar dataKey="avgRev" name="平均収益" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} />
+                                        <Bar dataKey="medianRev" name="中央値" fill="#10b981" radius={[0, 4, 4, 0]} barSize={8} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10"><Icons.Activity className="text-blue-500" /> ポジショニング・マトリクス <span className="text-[10px] opacity-50">(Score x Rev)</span></h3>
+                            <div className="h-80 relative z-10">
+                                <ResponsiveContainer>
+                                    <ScatterChart margin={{ top: 0, right: 20, bottom: 20, left: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                        <XAxis type="number" dataKey="x" name="Score" unit="%" domain={[0, 100]} stroke="#475569" fontSize={10} label={{ value: 'レビュースコア', position: 'bottom', fill: '#475569', fontSize: 10, offset: 10 }} />
+                                        <YAxis type="number" dataKey="y" name="Revenue" stroke="#475569" fontSize={10} tickFormatter={(v) => `¥${(v / 1000000).toFixed(0)}M`} width={50} />
+                                        <Tooltip
+                                            cursor={{ strokeDasharray: '3 3' }}
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const d = payload[0].payload;
+                                                    return (
+                                                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl shadow-2xl text-xs">
+                                                            <p className="font-black text-white mb-1">{d.title}</p>
+                                                            <div className="flex justify-between gap-4"><span className="text-slate-500">収益:</span><span className="text-green-400 font-mono font-bold">{formatYen(d.y)}</span></div>
+                                                            <div className="flex justify-between gap-4"><span className="text-slate-500">スコア:</span><span className="text-yellow-500 font-mono font-bold">{d.x}%</span></div>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                        {chartData.map((list) => (
+                                            <Scatter key={list.id} name={list.name} data={list.games} fill={list.fill} shape={(props) => {
+                                                const { cx, cy, fill, payload } = props;
+                                                if (payload.isBlueOcean) {
+                                                    return (
+                                                        <g>
+                                                            <circle cx={cx} cy={cy} r={12} fill="#eab308" fillOpacity={0.3}>
+                                                                <animate attributeName="r" from="4" to="20" dur="1s" repeatCount="indefinite" />
+                                                                <animate attributeName="opacity" from="0.8" to="0" dur="1s" repeatCount="indefinite" />
+                                                            </circle>
+                                                            <circle cx={cx} cy={cy} r={4} fill="#eab308" stroke="#fff" strokeWidth={1.5} />
+                                                        </g>
+                                                    );
+                                                }
+                                                return <circle cx={cx} cy={cy} r={4} fill={fill} />;
+                                            }} />
+                                        ))}
+                                    </ScatterChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+                        <table className="w-full text-left text-sm text-slate-400">
+                            <thead>
+                                <tr className="bg-slate-950/50 border-b border-slate-800">
+                                    <th className="px-6 py-5 w-16"></th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">分析リスト</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">タイトル数</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">平均スコア</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/50">
+                                {comparisonStats.map((d, i) => (
+                                    <tr
+                                        key={i}
+                                        className={`hover:bg-slate-850/50 transition-colors cursor-pointer ${d.selected ? 'bg-blue-600/5' : ''}`}
+                                        onClick={() => toggleListSelection(d.id)}
+                                    >
+                                        <td className="px-6 py-5">
+                                            <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${d.selected ? 'bg-blue-600 border-blue-500' : 'border-slate-700 bg-slate-950'}`}>
+                                                {d.selected && <Icons.CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-2 h-8 rounded-full" style={{ backgroundColor: d.fill }}></div>
+                                                <span className="font-black text-white text-base">{d.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 text-center font-bold text-slate-300">{d.count}<span className="text-[10px] ml-1 opacity-50">titles</span></td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[60px]">
+                                                    <div className="h-full bg-yellow-500" style={{ width: `${d.avgScore}%` }}></div>
+                                                </div>
+                                                <span className="font-bold text-yellow-500 font-mono">{Math.round(d.avgScore)}%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const GameSection = ({ title, games, viewMode, onNavigate, onSort, sortConfig, SortIcon, onOpenListModal, onDelete, onRemove, activeListId, sectionId, openHelp, lastUpdated, onSelectList, search, setSearch, noTopBorder = false }) => {
+            const sectionRef = useRef(null);
+            const { addToast, removeToast } = useToast();
+
+            // PRO版チェック（セクション用）
+            const isProSection = () => {
+                try {
+                    return window.parent?.AppState?.isPro || localStorage.getItem('steam_compass_pro') === 'true';
+                } catch (e) {
+                    return localStorage.getItem('steam_compass_pro') === 'true';
+                }
+            };
+
+            const handleSectionCsv = () => {
+                if (!isProSection()) {
+                    addToast('CSV出力はPRO版の機能です', 'error');
+                    return;
+                }
+                const headers = ["ID", "Title", "Release", "Price", "Score", "Reviews", "Peak", "Sales(Est)", "Revenue(Est)", "WL(Est)"];
+                const rows = games.map(g => {
+                    let release = g.releaseDate;
+                    const d = new Date(release);
+                    if (!isNaN(d.getTime())) { release = d.toISOString().split('T')[0]; } else if (release.includes(',')) { release = `"${release}"`; }
+                    return [
+                        g.id,
+                        `"${g.title.replace(/"/g, '""')}"`,
+                        release,
+                        `"￥${new Intl.NumberFormat('ja-JP').format(g.price)}"`,
+                        `${g.reviewScore}%`,
+                        g.reviews,
+                        g.peak || g.ccu || 0,
+                        Math.round(g.estimatedSales),
+                        `"￥${new Intl.NumberFormat('ja-JP').format(Math.round(g.estimatedRevenue))}"`,
+                        g.estimatedWL || 0
+                    ];
+                });
+                const csv = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+                const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `steamlytic_${title}_${new Date().toISOString().slice(0, 10)}.csv`; link.click();
+            };
+
+            const handleSectionPng = async () => {
+                if (!isProSection()) {
+                    addToast('PNG出力はPRO版の機能です', 'error');
+                    return;
+                }
+                if (!sectionRef.current) return;
+                const toastId = addToast('画像を生成中...', 'loading');
+                try {
+                    const { offsetWidth, offsetHeight } = sectionRef.current;
+                    const dataUrl = await domtoimage.toPng(sectionRef.current, {
+                        bgcolor: '#020617', // bg-slate-950
+                        width: 1280 + 80, // Forced PC width + padding
+                        height: offsetHeight + 80,
+                        style: {
+                            padding: '40px', // Visible padding
+                            boxSizing: 'border-box',
+                            margin: 0,
+                            transform: 'none',
+                            width: '1280px', // Force width for layout to be like PC
+                            maxWidth: 'none'
+                        },
+                        filter: (node) => !node.classList?.contains('no-capture')
+                    });
+
+                    const link = document.createElement('a');
+                    link.download = `steamlytic_${title}_${new Date().toISOString().slice(0, 10)}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                    removeToast(toastId);
+                    addToast('画像を保存しました', 'success');
+                } catch (e) {
+                    console.error("PNG generation failed", e);
+                    removeToast(toastId);
+                    addToast("PNG保存に失敗しました", 'error');
+                }
+            };
+
+            if (games.length === 0) return null;
+
+            return (
+                <div className="mb-40 animate-fade-in scroll-mt-32" id={sectionId} ref={sectionRef}>
+                    <div className={`flex items-center justify-between mb-6 pb-4 border-b border-slate-800`}>
+                        <div className="flex items-center gap-3">
+                            <h3
+                                className={`text-xl font-bold text-white flex items-center gap-2 pl-2 border-l-4 border-blue-500 select-none transition-opacity`}
+                            >
+                                {title}
+                                <span className="text-xs font-bold text-white bg-blue-600 px-2.5 py-0.5 rounded-full ml-1 shadow">{games.length}</span>
+                            </h3>
+                        </div>
+
+                        <div className="flex items-center gap-3 no-capture">
+                            <div className="relative group mr-2">
+                                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-3.5 h-3.5 group-focus-within:text-blue-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    value={search || ""}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="リスト内検索..."
+                                    className="bg-slate-950/50 border border-slate-800 rounded-full pl-9 pr-4 py-1.5 text-[11px] w-32 md:w-48 outline-none focus:border-blue-500 focus:bg-slate-900 text-slate-200 transition-all focus:w-48 md:focus:w-56"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                            {viewMode === 'card' ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {games.map(g => (
+                                        <div key={g.id} className="group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all flex flex-col relative shadow-lg">
+                                            <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-capture">
+                                                <button onClick={(e) => onDelete(e, g.id)} className="p-1.5 bg-red-950/80 text-red-400 rounded-full hover:bg-red-600 hover:text-white transition-colors backdrop-blur-md" title="削除"><Icons.Trash className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                            <div className="h-32 relative cursor-pointer overflow-hidden" onClick={() => onNavigate('detail', g)}>
+                                                <img src={g.headerImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onError={(e) => { e.target.style.display = 'none' }} />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent"></div>
+                                                <div className="absolute bottom-2 left-3 px-2 py-0.5 bg-black/80 rounded text-[10px] font-bold text-white border border-white/10">{formatYen(g.price)}</div>
+                                                {/* List Badges Overlay - only if not in a specific list view */}
+                                                {!activeListId && g.belongingLists && g.belongingLists.length > 0 && (
+                                                    <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[80%]">
+                                                        {g.belongingLists.map(l => (
+                                                            <span key={l.id} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-600/90 text-white backdrop-blur-sm border border-blue-500/50 truncate max-w-[80px]">
+                                                                {l.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-4 flex-1 flex flex-col cursor-pointer" onClick={() => onNavigate('detail', g)}>
+                                                <h4 className="font-bold text-sm text-white line-clamp-1 mb-2 group-hover:text-blue-400 transition-colors min-h-[20px]">{g.title}</h4>
+                                                <div className="flex items-center gap-2 mb-2 text-xs">
+                                                    <div className={`font-black ${calculateReviewColor(g.reviewScore)} flex-shrink-0`}>{g.reviewScore}%</div>
+                                                    <div className="text-slate-500 truncate min-w-0 flex-1">{getReviewText(g.reviewScore)}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto rounded-xl border border-slate-800 mb-12"> {/* Added mb-12 for spacing in table view */}
+                                    <table className="w-full text-left text-sm text-slate-400">
+                                        <thead className="bg-slate-900 text-xs uppercase text-slate-500 sticky top-0 z-10">
+                                            <tr>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('title')}>タイトル <SortIcon colKey="title" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('price')}>価格 <SortIcon colKey="price" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('reviews')}>レビュー <SortIcon colKey="reviews" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('reviewScore')}>スコア <SortIcon colKey="reviewScore" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold text-right no-capture">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800 bg-slate-900/50">
+                                            {games.map(g => (
+                                                <tr key={g.id} className="hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => onNavigate('detail', g)}>
+                                                    <td className="px-4 py-3 font-bold text-white max-w-xs">
+                                                        <div className="flex items-center gap-3">
+                                                            <img src={g.headerImage} alt="" className="w-16 h-8 object-cover rounded hidden sm:block opacity-80" />
+                                                            <span className="truncate">{g.title}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 font-mono">{formatYen(g.price)}</td>
+                                                    <td className="px-4 py-3 font-mono">{formatNumber(g.reviews)}</td>
+                                                    <td className={`px-4 py-3 font-bold ${calculateReviewColor(g.reviewScore)}`}>{g.reviewScore}%</td>
+                                                    <td className="px-4 py-3 text-right no-capture" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex justify-end gap-1 md:gap-2">
+                                                            <button onClick={(e) => onDelete(e, g.id)} className="p-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border border-slate-700 transition-colors" title="削除"><Icons.Trash className="w-3.5 h-3.5" /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // 埋め込みモード検知（URLパラメータ ?embed=true）
+            const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === 'true';
+
+            const [view, setView] = useState('dashboard');
+            const [viewMode, setViewMode] = useState('table');
+            const [games, setGames] = useState(() => JSON.parse(localStorage.getItem('steamlytic_games_pool')) || []);
+            const [lists, setLists] = useState(() => JSON.parse(localStorage.getItem('steamlytic_lists')) || []);
+            // Global Settings
+            const [config, setConfig] = useState(() => JSON.parse(localStorage.getItem('steamlytic_config')) || { multiplier: 35, aspFactor: 0.7 });
+            const [activeListId, setActiveListId] = useState(null);
+            const [sectionFilter, setSectionFilter] = useState('ALL');
+
+            const [search, setSearch] = useState('');
+            const [selectedGameId, setSelectedGameId] = useState(null);
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [showListModal, setShowListModal] = useState(false);
+            const [showConfigModal, setShowConfigModal] = useState(false);
+            const [showCalculator, setShowCalculator] = useState(false);
+            const [showHelpModal, setShowHelpModal] = useState(false);
+            const [helpContent, setHelpContent] = useState({ title: '', message: '' });
+            const [modalGame, setModalGame] = useState(null);
+
+            const [syncing, setSyncing] = useState(false);
+            const [dialogOpen, setDialogOpen] = useState(false);
+            const [dialogConfig, setDialogConfig] = useState({});
+            const [dialogInput, setDialogInput] = useState("");
+            const [imageViewSrc, setImageViewSrc] = useState(null);
+
+            // Sorting state
+            const [sortConfig, setSortConfig] = useState({ key: 'reviews', direction: 'desc' });
+
+            const { addToast, updateToast, removeToast } = useToast();
+
+            useEffect(() => localStorage.setItem('steamlytic_games_pool', JSON.stringify(games)), [games]);
+            useEffect(() => localStorage.setItem('steamlytic_lists', JSON.stringify(lists)), [lists]);
+            useEffect(() => localStorage.setItem('steamlytic_config', JSON.stringify(config)), [config]);
+
+            const [listSearch, setListSearch] = useState("");
+
+            useEffect(() => {
+                const handlePopState = (event) => {
+                    const state = event.state;
+                    if (state) {
+                        setView(state.view || 'dashboard');
+                        setSelectedGameId(state.gameId || null);
+                    } else {
+                        setView('dashboard');
+                        setSelectedGameId(null);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+
+                // Global click handler to close menus
+                const handleClickOutside = (e) => {
+                    const menus = document.querySelectorAll('.menu-container > div:not(.invisible)');
+                    menus.forEach(menu => {
+                        if (!menu.parentElement.contains(e.target)) {
+                            menu.classList.add('opacity-0', 'invisible');
+                        }
+                    });
+                };
+                window.addEventListener('click', handleClickOutside);
+
+                return () => {
+                    window.removeEventListener('popstate', handlePopState);
+                    window.removeEventListener('click', handleClickOutside);
+                };
+            }, []);
+
+            const navigate = (newView, newGame = null) => {
+                window.history.pushState({ view: newView, gameId: newGame ? newGame.id : null }, "");
+                setView(newView);
+                setSelectedGameId(newGame ? newGame.id : null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Embed mode: notify parent about view change
+                if (isEmbedMode) {
+                    window.parent.postMessage({ type: 'VIEW_CHANGE', view: newView }, '*');
+                }
+            };
+
+            const handleOpenHelp = (title, message) => {
+                setHelpContent({ title, message });
+                setShowHelpModal(true);
+            };
+
+            const openDialog = (type, title, message, onConfirm, initialValue = "") => {
+                setDialogConfig({ type, title, message, onConfirm });
+                setDialogInput(initialValue);
+                setDialogOpen(true);
+            };
+            const closeDialog = () => setDialogOpen(false);
+            const handleDialogConfirm = () => {
+                if (dialogConfig.onConfirm) dialogConfig.onConfirm(dialogInput);
+                closeDialog();
+            };
+
+            const handleResetData = () => {
+                openDialog('confirm', 'データ初期化', 'すべてのゲームデータとリスト設定を削除して初期状態に戻しますか？', () => {
+                    localStorage.removeItem('steamlytic_games_pool');
+                    localStorage.removeItem('steamlytic_lists');
+                    setGames([]); setLists([]); setActiveListId(null);
+                    window.location.reload();
+                });
+            };
+
+            const canUpdateList = useCallback((list) => {
+                if (!list || !list.lastUpdated) return true;
+                const last = new Date(list.lastUpdated);
+                const now = new Date();
+                return last.toDateString() !== now.toDateString();
+            }, []);
+
+            // Background Batch Processing (Only Categorized Lists)
+            useEffect(() => {
+                const checkAutoSync = () => {
+                    if (syncing || lists.length === 0) return;
+                    // Filter out lists that have no games or are already up-to-date
+                    const listsWithGames = lists.filter(l => l.gameIds && l.gameIds.length > 0);
+                    const listsToUpdate = listsWithGames.filter(l => canUpdateList(l));
+                    if (listsToUpdate.length > 0) {
+                        handleAutoSync(listsToUpdate);
+                    }
+                };
+                const interval = setInterval(checkAutoSync, 60000); // Check every 1 minute
+                const initialTimeout = setTimeout(checkAutoSync, 3000); // Start after 3 seconds
+                return () => {
+                    clearInterval(interval);
+                    clearTimeout(initialTimeout);
+                };
+            }, [lists, syncing, canUpdateList]);
+
+            // Debug command
+            React.useEffect(() => {
+                window.forceAutoSync = () => {
+                    console.log('[DEBUG] Force auto-sync triggered');
+                    console.log('Lists:', lists);
+                    const listsWithGames = lists.filter(l => l.gameIds && l.gameIds.length > 0);
+                    console.log('Lists with games:', listsWithGames);
+                    if (listsWithGames.length > 0) {
+                        handleAutoSync(listsWithGames);
+                    } else {
+                        console.log('No lists with games to update');
+                    }
+                };
+                return () => { delete window.forceAutoSync; };
+            }, [lists]);
+
+            const handleAutoSync = async (listsToUpdate) => {
+                if (syncing) return;
+                setSyncing(true);
+                addToast(`${listsToUpdate.length}個のリストの自動更新を開始します...`, "info");
+                const processedIds = new Set();
+                for (const list of listsToUpdate) {
+                    const ids = list.gameIds;
+                    for (const id of ids) {
+                        if (!processedIds.has(id)) {
+                            const data = await fetchGame(id, config.multiplier, config.aspFactor);
+                            if (data) {
+                                setGames(prev => prev.map(g => g.id === id ? data : g));
+                            }
+                            processedIds.add(id);
+                            await new Promise(r => setTimeout(r, 1200)); // Respect Rate Limit (~1 request/sec + margin)
+                        }
+                    }
+                    setLists(prev => prev.map(l => l.id === list.id ? { ...l, lastUpdated: new Date().toISOString() } : l));
+                }
+                setSyncing(false);
+                addToast("リストの自動更新が完了しました", "success");
+            };
+
+            const recalculatedGames = useMemo(() => {
+                return games.map(g => {
+                    const estSales = g.reviews * config.multiplier;
+                    const estRev = estSales * g.price * config.aspFactor;
+                    const belongingLists = lists.filter(l => l.gameIds.includes(g.id)).map(l => ({ id: l.id, name: l.name }));
+                    return { ...g, estimatedSales: estSales, estimatedRevenue: estRev, estimatedWL: Math.round(g.reviews * 15), belongingLists };
+                });
+            }, [games, config, lists]);
+
+            const selectedGame = useMemo(() =>
+                recalculatedGames.find(g => g.id === selectedGameId) || null
+                , [recalculatedGames, selectedGameId]);
+
+            const similarTitles = useMemo(() => {
+                if (!selectedGame) return [];
+                const targetTags = selectedGame.userTags || [];
+                const targetGenres = selectedGame.genres || [];
+
+                return recalculatedGames
+                    .filter(g => g.id !== selectedGame.id)
+                    .map(g => {
+                        const compareTags = g.userTags || [];
+                        const compareGenres = g.genres || [];
+
+                        // Jaccard Similarity for Tags
+                        const intersection = compareTags.filter(t => targetTags.includes(t));
+                        const union = [...new Set([...compareTags, ...targetTags])];
+                        const jaccard = union.length > 0 ? intersection.length / union.length : 0;
+
+                        // Genre Match Factor
+                        const commonGenres = compareGenres.filter(g => targetGenres.includes(g));
+                        const genreScore = targetGenres.length > 0 ? commonGenres.length / targetGenres.length : 0;
+
+                        // Final Score (Weight: Tags 0.7, Genres 0.3)
+                        const finalScore = (jaccard * 0.7) + (genreScore * 0.3);
+
+                        return { ...g, similarityScore: finalScore, commonTagCount: intersection.length };
+                    })
+                    .filter(g => g.similarityScore > 0.5)
+                    .sort((a, b) => b.similarityScore - a.similarityScore || b.estimatedRevenue - a.estimatedRevenue)
+                    .slice(0, 4);
+            }, [selectedGame, recalculatedGames]);
+
+            const activeList = useMemo(() => lists.find(l => l.id === activeListId), [lists, activeListId]);
+            const filteredGames = useMemo(() => {
+                let res = recalculatedGames;
+                if (activeListId) {
+                    const targetList = lists.find(l => l.id === activeListId);
+                    if (targetList) res = res.filter(g => targetList.gameIds.includes(g.id));
+                }
+                if (search) res = res.filter(g => g.title.toLowerCase().includes(search.toLowerCase()) || (g.userTags && g.userTags.some(t => t.toLowerCase().includes(search.toLowerCase()))));
+                return res;
+            }, [recalculatedGames, activeListId, lists, search]);
+
+            const sortGames = useCallback((gameList) => {
+                if (sortConfig.key === null) return gameList;
+                return [...gameList].sort((a, b) => {
+                    let aValue = a[sortConfig.key];
+                    let bValue = b[sortConfig.key];
+                    if (sortConfig.key === 'peak') { aValue = a.peak || a.ccu || 0; bValue = b.peak || b.ccu || 0; }
+                    if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                });
+            }, [sortConfig]);
+
+            const sortedGames = useMemo(() => sortGames(filteredGames), [filteredGames, sortGames]);
+
+            const requestSort = (key) => {
+                let direction = 'descending';
+                if (sortConfig.key === key && sortConfig.direction === 'descending') direction = 'ascending';
+                setSortConfig({ key, direction });
+            };
+
+            const stats = useMemo(() => {
+                const count = filteredGames.length;
+                if (count === 0) return { rev: 0, revs: 0, avg: 0, score: 0 };
+                return {
+                    rev: filteredGames.reduce((a, g) => a + g.estimatedRevenue, 0) / count,
+                    revs: filteredGames.reduce((a, g) => a + g.reviews, 0) / count,
+                    avg: filteredGames.reduce((a, g) => a + g.price, 0) / count,
+                    score: filteredGames.reduce((a, g) => a + g.reviewScore, 0) / count
+                };
+            }, [filteredGames]);
+
+            const tagAnalytics = useMemo(() => {
+                const tagStats = {};
+                filteredGames.forEach(g => {
+                    const tagsToAnalyze = g.userTags || [];
+                    tagsToAnalyze.forEach(t => {
+                        if (!tagStats[t]) tagStats[t] = { name: t, count: 0, totalRev: 0, totalScore: 0, totalReviews: 0 };
+                        tagStats[t].count++;
+                        tagStats[t].totalRev += g.estimatedRevenue;
+                        tagStats[t].totalScore += g.reviewScore;
+                        tagStats[t].totalReviews += g.reviews;
+                    });
+                });
+                const sortedTags = Object.values(tagStats)
+                    .filter(t => t.count >= 1)
+                    .map(t => ({
+                        name: t.name,
+                        count: t.count,
+                        avgRev: t.totalRev / t.count,
+                        avgScore: Math.round(t.totalScore / t.count),
+                        avgReviews: t.totalReviews / t.count,
+                        fill: '#3b82f6',
+                        isBlueOcean: t.count <= 15 && (t.totalRev / t.count) >= stats.rev * 1.5, // 競合が少なく平均より1.5倍以上収益が高い
+                        z: Math.round(t.totalScore / t.count) * 10
+                    }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 30);
+
+                return sortedTags;
+            }, [filteredGames, stats.rev]);
+
+            const releaseYearStats = useMemo(() => {
+                const yearCounts = {};
+                games.forEach(g => {
+                    const dateStr = g.releaseDate || "";
+                    const match = dateStr.match(/\d{4}/);
+                    if (match) {
+                        const year = match[0];
+                        yearCounts[year] = (yearCounts[year] || 0) + 1;
+                    } else {
+                        yearCounts['Unknown'] = (yearCounts['Unknown'] || 0) + 1;
+                    }
+                });
+                return Object.entries(yearCounts)
+                    .map(([year, count]) => ({ year, count }))
+                    .sort((a, b) => b.year.localeCompare(a.year))
+                    .slice(0, 10);
+            }, [games]);
+
+            const releaseYearStatsForList = useMemo(() => {
+                const yearCounts = {};
+                filteredGames.forEach(g => {
+                    const dateStr = g.releaseDate || "";
+                    const match = dateStr.match(/\d{4}/);
+                    if (match) {
+                        const year = match[0];
+                        yearCounts[year] = (yearCounts[year] || 0) + 1;
+                    }
+                });
+                return Object.entries(yearCounts)
+                    .map(([year, count]) => ({ year, count }))
+                    .sort((a, b) => b.year.localeCompare(a.year))
+                    .slice(0, 10);
+            }, [filteredGames]);
+
+            const handleConfigSave = (newConfig) => { setConfig(newConfig); setShowConfigModal(false); addToast('分析係数を更新し、再計算しました', 'success'); };
+
+            // 親フレームからのメッセージを受信（埋め込みモード用）
+            const handleAddBatchRef = useRef(null);
+
+            // 親フレームからのpostMessageリスナー
+            useEffect(() => {
+                if (!isEmbedMode) return;
+                const handleMessage = (event) => {
+                    if (event.data && event.data.type === 'ADD_GAME') {
+                        const appId = event.data.appId;
+                        if (appId && handleAddBatchRef.current) {
+                            handleAddBatchRef.current(appId.toString());
+                        }
+                    }
+                };
+                window.addEventListener('message', handleMessage);
+                return () => window.removeEventListener('message', handleMessage);
+            }, [isEmbedMode]);
+
+            const handleAddBatch = async (input) => {
+                const normalizedInput = input.replace(/[、，]/g, ',');
+                const ids = normalizedInput.split(/[\s,\n]+/).filter(x => x && !isNaN(x)).map(x => parseInt(x));
+                if (!ids.length) { addToast('有効なApp IDが見つかりません', 'error'); return; }
+                setSyncing(true); setShowAddModal(false);
+                const toastId = addToast(`${ids.length}件の取得を開始...`, 'loading', 0);
+                let newGameIds = [], successCount = 0, failCount = 0;
+                for (let i = 0; i < ids.length; i++) {
+                    const id = ids[i];
+                    updateToast(toastId, { message: `取得中: ${id} (${i + 1}/${ids.length})`, progress: Math.round((i / ids.length) * 100) });
+                    if (games.some(g => g.id === id)) { newGameIds.push(id); successCount++; continue; }
+                    const data = await fetchGame(id, config.multiplier, config.aspFactor);
+                    if (data) { setGames(prev => [...prev, data]); newGameIds.push(data.id); successCount++; } else failCount++;
+                    await new Promise(r => setTimeout(r, 600));
+                }
+                if (activeListId) setLists(prev => prev.map(l => l.id === activeListId ? { ...l, gameIds: [...new Set([...l.gameIds, ...newGameIds])] } : l));
+                setSyncing(false);
+                updateToast(toastId, { message: `${successCount}件 追加完了`, type: 'success', progress: 100 });
+            };
+
+            // handleAddBatchをrefに保存（postMessageから呼び出し用）
+            useEffect(() => { handleAddBatchRef.current = handleAddBatch; }, [handleAddBatch]);
+
+            const handleSyncList = async () => {
+                if (!activeListId) return;
+                setSyncing(true);
+                const targetList = lists.find(l => l.id === activeListId);
+                const idsToSync = targetList.gameIds;
+                if (idsToSync.length === 0) { setSyncing(false); addToast("更新対象のゲームがありません", 'error'); return; }
+                const toastId = addToast(`リスト更新中: 0/${idsToSync.length}`, 'loading', 0);
+                for (let i = 0; i < idsToSync.length; i++) {
+                    const id = idsToSync[i];
+                    updateToast(toastId, { message: `更新中: ${id} (${i + 1}/${idsToSync.length})`, progress: Math.round((i / idsToSync.length) * 100) });
+                    const data = await fetchGame(id, config.multiplier, config.aspFactor);
+                    if (data) setGames(prev => prev.map(g => g.id === id ? data : g));
+                    await new Promise(r => setTimeout(r, 600));
+                }
+                setLists(prev => prev.map(l => l.id === activeListId ? { ...l, lastUpdated: new Date().toISOString() } : l));
+                setSyncing(false);
+                updateToast(toastId, { message: "リストの更新が完了しました", type: 'success', progress: 100 });
+            };
+
+            const handleResetFromConfig = () => { setShowConfigModal(false); handleResetData(); };
+            const handleDeleteGame = (e, id) => { e.stopPropagation(); openDialog('confirm', '完全に削除', '削除しますか？', () => { setGames(p => p.filter(g => g.id !== id)); setLists(p => p.map(l => ({ ...l, gameIds: l.gameIds.filter(gid => gid !== id) }))); }); };
+            const toggleGameInList = (lid, gid) => setLists(p => p.map(l => l.id === lid ? { ...l, gameIds: l.gameIds.includes(gid) ? l.gameIds.filter(i => i !== gid) : [...l.gameIds, gid] } : l));
+            const removeFromCurrentList = (e, gid) => { e.stopPropagation(); if (!activeListId) return; openDialog('confirm', 'リストから除外', "このリストから除外しますか？", () => { toggleGameInList(activeListId, gid); addToast("リストから除外しました", 'success'); }); };
+            const openListModal = (e, g) => { e.stopPropagation(); setModalGame(g); setShowListModal(true); };
+
+            const createList = () => openDialog('prompt', 'リスト作成', '新しいリストの名前を入力してください:', (name) => {
+                if (name && name.trim()) {
+                    const newList = { id: Date.now().toString(), name: name.trim(), gameIds: [] };
+                    setLists(prev => [...prev, newList]);
+                    setActiveListId(newList.id);
+                    addToast(`リスト「${name}」を作成しました`, 'success');
+                }
+            });
+            const renameList = (target) => {
+                const list = target && target.id ? target : activeList;
+                if (!list) return;
+                openDialog('prompt', '名前変更', 'リスト名を変更:', (name) => {
+                    if (name && name.trim()) setLists(prev => prev.map(l => l.id === list.id ? { ...l, name: name.trim() } : l));
+                }, list.name);
+            };
+            const editListDescription = (target) => {
+                const list = target && target.id ? target : activeList;
+                if (!list) return;
+                openDialog('prompt', '説明文の編集', 'リストの説明文を入力してください:', (desc) => {
+                    setLists(prev => prev.map(l => l.id === list.id ? { ...l, description: desc.trim() } : l));
+                }, list.description || "");
+            };
+            const deleteList = (target) => { const list = target && target.id ? target : activeList; if (!list) return; openDialog('confirm', 'リスト削除', `リスト「${list.name}」を削除しますか？`, () => { setLists(prev => prev.filter(l => l.id !== list.id)); if (activeListId === list.id) setActiveListId(null); addToast("リストを削除しました", 'success'); }); };
+
+            // PRO版機能チェック
+            const isPro = () => {
+                // 親フレームからPRO状態を取得、またはlocalStorageから取得
+                try {
+                    return window.parent?.AppState?.isPro || localStorage.getItem('steam_compass_pro') === 'true';
+                } catch (e) {
+                    return localStorage.getItem('steam_compass_pro') === 'true';
+                }
+            };
+
+            const handleSavePng = async () => {
+                if (!isPro()) {
+                    addToast('PNG出力はPRO版の機能です', 'error');
+                    return;
+                }
+                const target = document.getElementById('dashboard-container');
+                if (!target) return;
+                const toastId = addToast('画像を生成中...', 'loading');
+                try {
+                    const { offsetHeight } = target;
+                    const exportWidth = 1280;
+                    const dataUrl = await domtoimage.toPng(target, { bgcolor: '#020617', width: exportWidth + 80, height: offsetHeight + 80, style: { padding: '40px', boxSizing: 'border-box', margin: 0, transform: 'none', width: `${exportWidth}px`, maxWidth: 'none' }, filter: (node) => !node.classList?.contains('no-capture') });
+                    const link = document.createElement('a'); link.download = `steamlytic_dashboard_${new Date().toISOString().slice(0, 10)}.png`; link.href = dataUrl; link.click();
+                    removeToast(toastId); addToast('画像を保存しました', 'success');
+                } catch (e) { console.error("PNG generation failed", e); removeToast(toastId); addToast("PNG保存に失敗しました", 'error'); }
+            };
+
+            const handleExportCsv = () => {
+                if (!isPro()) {
+                    addToast('CSV出力はPRO版の機能です', 'error');
+                    return;
+                }
+                if (!activeList || sortedGames.length === 0) return;
+                const headers = ["ID", "Title", "Release", "Price", "Score", "Reviews", "Peak", "Sales(Est)", "Revenue(Est)", "WL(Est)"];
+                const rows = sortedGames.map(g => {
+                    let release = g.releaseDate;
+                    const d = new Date(release);
+                    if (!isNaN(d.getTime())) { release = d.toISOString().split('T')[0]; } else if (release && release.includes(',')) { release = `"${release}"`; }
+                    return [
+                        g.id,
+                        `"${g.title.replace(/"/g, '""')}"`,
+                        release,
+                        `"￥${new Intl.NumberFormat('ja-JP').format(g.price)}"`,
+                        `${g.reviewScore}%`,
+                        g.reviews,
+                        g.peak || g.ccu || 0,
+                        Math.round(g.estimatedSales),
+                        `"￥${new Intl.NumberFormat('ja-JP').format(Math.round(g.estimatedRevenue))}"`,
+                        g.estimatedWL || 0
+                    ];
+                });
+                const csv = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+                const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `steamlytic_${activeList.name}_full_${new Date().toISOString().slice(0, 10)}.csv`; link.click();
+            };
+
+            const handleDirectAdd = (idStr) => { handleAddBatch(idStr); };
+
+            const renderGameSections = () => {
+                const filterBySearch = (lg) => search ? lg.filter(g => g.title.toLowerCase().includes(search.toLowerCase()) || (g.userTags && g.userTags.some(t => t.toLowerCase().includes(search.toLowerCase())))) : lg;
+
+                if (sectionFilter === 'ALL') {
+                    const allGames = sortGames(filterBySearch(recalculatedGames));
+                    return (
+                        <div className="space-y-4">
+                            <GameSection
+                                key="master-pool"
+                                sectionId="s-all"
+                                title="プールリスト"
+                                games={allGames}
+                                viewMode={viewMode}
+                                onNavigate={navigate}
+                                onSort={requestSort}
+                                sortConfig={sortConfig}
+                                SortIcon={SortIcon}
+                                onOpenListModal={openListModal}
+                                onDelete={handleDeleteGame}
+                                onRemove={null}
+                                activeListId={null}
+                                openHelp={handleOpenHelp}
+                                lastUpdated={null}
+                                onSelectList={null}
+                                search={search}
+                                setSearch={setSearch}
+                                noTopBorder={false}
+                            />
+                        </div>
+                    );
+                }
+
+                const listSections = lists.map(l => {
+                    let gl = filterBySearch(recalculatedGames.filter(g => l.gameIds.includes(g.id)));
+                    if (gl.length === 0) return null;
+                    return { key: l.id, title: l.name, games: sortGames(gl), lastUpdated: l.lastUpdated, onSelectList: () => setActiveListId(l.id), noTopBorder: false };
+                }).filter(Boolean);
+                const allIds = new Set(lists.flatMap(l => l.gameIds));
+                let uncat = filterBySearch(recalculatedGames.filter(g => !allIds.has(g.id)));
+                const uncatData = uncat.length > 0 ? { key: 'uncategorized', title: '未分類', games: sortGames(uncat) } : null;
+                let sections = [];
+                if (sectionFilter === 'uncategorized') { if (uncatData) sections.push(uncatData); }
+                else { const t = listSections.find(s => s.key === sectionFilter); if (t) sections.push(t); }
+                return (
+                    <div className="space-y-4">
+                                {sectionFilter !== 'ALL' && (
+                                    <div className="flex flex-wrap gap-2 mb-8">
+                                        <button onClick={() => setSectionFilter('ALL')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all border ${sectionFilter === 'ALL' ? 'bg-blue-600 border-blue-500 text-white shadow-md' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>プロジェクト一覧へ戻る</button>
+                                    </div>
+                                )}
+                                {sections.map(s => (<GameSection key={s.key} sectionId={`s-${s.key}`} title={s.title} games={s.games} viewMode={viewMode} onNavigate={navigate} onSort={requestSort} sortConfig={sortConfig} SortIcon={SortIcon} onOpenListModal={openListModal} onDelete={handleDeleteGame} onRemove={removeFromCurrentList} activeListId={activeListId} openHelp={handleOpenHelp} lastUpdated={s.lastUpdated} onSelectList={null} search={search} setSearch={setSearch} />))}
+                                <div className="mt-8 pt-6 border-t border-slate-800/50 flex justify-end text-[10px] font-mono text-slate-600">
+                                    Last Updated: {new Date().toLocaleString('ja-JP')}
+                                </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="flex flex-col min-h-screen pb-10 relative">
+                    <DialogModal isOpen={dialogOpen} type={dialogConfig.type} title={dialogConfig.title} message={dialogConfig.message} onConfirm={handleDialogConfirm} onCancel={closeDialog} inputValue={dialogInput} setInputValue={setDialogInput} />
+                    <ConfigModal isOpen={showConfigModal} onClose={() => setShowConfigModal(false)} config={config} onSave={handleConfigSave} onReset={handleResetFromConfig} openHelp={handleOpenHelp} />
+                    <ImageModal src={imageViewSrc} onClose={() => setImageViewSrc(null)} />
+                    <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} title={helpContent.title} message={helpContent.message} />
+                    <AddGameModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={handleAddBatch} activeListName={activeList?.name} />
+                    <ListManagerModal isOpen={showListModal} onClose={() => setShowListModal(false)} game={modalGame} lists={lists} onToggleList={toggleGameInList} />
+                    {!isEmbedMode && (
+                        <Header
+                            setView={navigate}
+                            view={view}
+                            onUpdateClick={handleSyncList}
+                            isUpdating={syncing}
+                            activeList={activeList}
+                            activeListId={activeListId}
+                            lists={lists}
+                            setActiveListId={setActiveListId}
+                            canUpdate={true}
+                            onAddGame={() => setShowAddModal(true)}
+                            onOpenConfig={() => setShowConfigModal(true)}
+                            onOpenCalculator={() => navigate('calculator')}
+                            onDirectAdd={handleAddBatch}
+
+                            addedGameIds={games.map(g => g.id)}
+                            createList={createList}
+                            renameList={renameList}
+                            deleteList={deleteList}
+                            viewMode={viewMode}
+                            setViewMode={setViewMode}
+                        />
+                    )}
+                    <main className="max-w-7xl mx-auto w-full px-4 md:px-8 py-8 animate-fade-in min-h-[600px] flex flex-col" id="dashboard-container">
+                        {view === 'dashboard' && (
+                            <div className="space-y-8">
+                                {games.length === 0 ? (
+                                    <div className="text-center py-32 border-2 border-dashed border-slate-800 rounded-3xl">
+                                        <Icons.Database className="w-16 h-16 text-slate-800 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-400 mb-2">データプールが空です</h2>
+                                    </div>
+                                ) : filteredGames.length === 0 ? (
+                                    <div className="text-center py-20 bg-slate-900/30 rounded-xl border border-slate-800 border-dashed"><p className="text-slate-500 font-medium mb-2">条件に一致するゲームがありません</p></div>
+                                ) : activeListId ? (
+                                    <div className="space-y-10 animate-fade-in">
+                                        <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
+                                            <div className="relative z-10 space-y-8">
+                                                <div className="flex flex-col gap-6">
+                                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                                        <div>
+                                                                 <div className="">
+                                                                     <h2
+                                                                         className="text-3xl font-black text-white flex items-center gap-3 select-none"
+                                                                     >
+                                                                         <Icons.Folder className="w-8 h-8 text-blue-500" /> {activeList.name}
+                                                                     </h2>
+                                                                 </div>
+                                                             <div className="mt-1">
+                                                                 <p className="text-slate-500 text-sm font-medium select-none">
+                                                                     {activeList.description || "この分析リストに登録されたタイトルの詳細統計と市場分布"}
+                                                                 </p>
+                                                             </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 no-capture lg:absolute lg:top-4 lg:right-4">
+                                                            <div className="relative menu-container">
+                                                                <button
+                                                                    id="list-menu-button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const menu = e.currentTarget.nextElementSibling;
+                                                                        menu.classList.toggle('opacity-0');
+                                                                        menu.classList.toggle('invisible');
+                                                                    }}
+                                                                    className="p-1.5 text-slate-500 hover:text-slate-300 transition-all"
+                                                                >
+                                                                    <Icons.MoreVertical className="w-5 h-5" />
+                                                                </button>
+                                                                <div className="absolute right-0 top-full mt-1 w-44 py-1.5 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl opacity-0 invisible transition-all z-50 overflow-hidden shadow-black/50">
+                                                                    <button onClick={() => renameList(activeList)} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                                                                        <Icons.Edit3 className="w-3.5 h-3.5" /> 名前を変更
+                                                                    </button>
+                                                                    <button onClick={() => editListDescription(activeList)} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                                                                        <Icons.FileText className="w-3.5 h-3.5" /> 説明を編集
+                                                                    </button>
+                                                                    <div className="h-px bg-slate-800 mx-3 my-1"></div>
+                                                                    <button onClick={handleSavePng} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-blue-400 hover:bg-blue-900/20 hover:text-blue-300 transition-colors">
+                                                        <Icons.Camera className="w-3.5 h-3.5" /> PNG出力
+                                                    </button>
+                                                                    <button onClick={() => deleteList(activeList)} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-red-500/70 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                                                                        <Icons.Trash2 className="w-3.5 h-3.5" /> リストを削除
+                                                                    </button>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                    <div className="space-y-4">
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                            <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">対象タイトル</div>
+                                                                <div className="text-xl font-black text-white">{sortedGames.length}</div>
+                                                            </div>
+                                                            <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">平均レビュー</div>
+                                                                <div className="text-xl font-black text-blue-400 font-mono whitespace-nowrap">{formatNumber(Math.round(stats.revs))}</div>
+                                                            </div>
+                                                            <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">平均スコア</div>
+                                                                <div className="text-xl font-black text-yellow-400 font-mono whitespace-nowrap">{Math.round(stats.score)}%</div>
+                                                            </div>
+                                                            <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">平均単価</div>
+                                                                <div className="text-xl font-black text-slate-200 font-mono whitespace-nowrap">{formatYen(stats.avg)}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20 px-8 py-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                            <div>
+                                                                <div className="text-[10px] font-bold text-green-500 uppercase tracking-widest mb-1 flex items-center gap-2"><Icons.TrendingUp className="w-3.5 h-3.5" /> 平均推定収益</div>
+                                                                 <div className="text-4xl font-black text-green-400 font-mono tracking-tighter">{formatYen(stats.rev)}</div>
+                                                             </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50">
+                                                    <div>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Calendar className="w-3.5 h-3.5" /> リリース年分布</h4>
+                                                        <div className="h-32">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart data={releaseYearStatsForList.slice(0, 10).reverse()}>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                                                    <XAxis dataKey="year" stroke="#475569" fontSize={9} />
+                                                                    <Tooltip cursor={false} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', fontSize: '10px' }} />
+                                                                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Hash className="w-3.5 h-3.5" /> 人気タグ構成</h4>
+                                                        <div className="h-32">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart data={tagAnalytics.slice(0, 5)} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                                                    <XAxis type="number" hide />
+                                                                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={9} width={80} />
+                                                                    <Tooltip cursor={false} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', fontSize: '10px' }} />
+                                                                    <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-8 border-t border-slate-800/50">
+                                                    <div className="flex items-center justify-between mb-6">
+                                                        <h3 className="text-lg font-black text-white flex items-center gap-3">
+                                                            <div className="p-2 bg-blue-500/10 rounded-lg"><Icons.Activity className="text-blue-500 w-5 h-5" /></div>
+                                                            市場機会分析 (Blue Ocean Map)
+                                                        </h3>
+                                                        <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                                            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> タグ分布</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-96">
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <ScatterChart margin={{ top: 20, right: 40, bottom: 40, left: 20 }}>
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                                                <XAxis type="number" dataKey="count" name="競合数" stroke="#475569" fontSize={11} label={{ value: '競合タイトル数', position: 'insideBottom', offset: -20, fill: '#475569', fontSize: 11, fontWeight: 'bold' }} />
+                                                                <YAxis type="number" dataKey="avgRev" name="平均収益" stroke="#475569" fontSize={11} tickFormatter={(v) => `¥${(v / 1000000).toFixed(0)}M`} width={80} label={{ value: '平均推定収益 (Million Yen)', angle: -90, position: 'insideLeft', offset: -10, fill: '#475569', fontSize: 11, fontWeight: 'bold' }} />
+                                                                <ZAxis type="number" dataKey="z" range={[100, 800]} name="スコア" />
+                                                                <Tooltip
+                                                                    cursor={false}
+                                                                    content={({ active, payload }) => {
+                                                                        if (active && payload && payload.length) {
+                                                                            const data = payload[0].payload;
+                                                                            return (
+                                                                                <div className="bg-slate-950/90 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl text-xs text-white">
+                                                                                    <p className="text-blue-400 font-extrabold text-sm mb-2 border-b border-slate-800 pb-2">{data.name}</p>
+                                                                                    <div className="space-y-1.5 font-medium">
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">平均収益:</span><span className="text-green-400 font-bold font-mono">{formatYen(data.avgRev)}</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">平均レビュー:</span><span className="text-blue-400 font-bold font-mono">{formatNumber(Math.round(data.avgReviews))}</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">平均評価:</span><span className="text-yellow-400 font-bold font-mono">{data.avgScore}%</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">競合タイトル数:</span><span className="text-white font-bold font-mono">{data.count}</span></div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    }}
+                                                                />
+                                                                 <Scatter
+                                                    name="Tags"
+                                                    data={tagAnalytics}
+                                                    fill="#3b82f6"
+                                                    shape={(props) => {
+                                                        const { cx, cy, fill, payload } = props;
+                                                        if (payload.isBlueOcean) {
+                                                            return (
+                                                                <g>
+                                                                    <circle cx={cx} cy={cy} r={12} fill="#eab308" fillOpacity={0.3}>
+                                                                        <animate attributeName="r" from="6" to="24" dur="1s" repeatCount="indefinite" />
+                                                                        <animate attributeName="opacity" from="0.8" to="0" dur="1s" repeatCount="indefinite" />
+                                                                    </circle>
+                                                                    <circle cx={cx} cy={cy} r={6} fill="#eab308" stroke="#fff" strokeWidth={2} />
+                                                                </g>
+                                                            );
+                                                        }
+                                                        return <circle cx={cx} cy={cy} r={6} fill="#3b82f6" />;
+                                                    }}
+                                                />
+                                                            </ScatterChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                    <div className="mt-6 pt-4 border-t border-slate-800/50 flex justify-end text-[10px] font-mono text-slate-600">
+                                                        Last Updated: {new Date().toLocaleString('ja-JP')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <div className="pt-6 relative">
+                                            <GameSection title={activeList.name} games={sortedGames} viewMode={viewMode} onNavigate={navigate} onSort={requestSort} sortConfig={sortConfig} SortIcon={SortIcon} onOpenListModal={openListModal} onDelete={handleDeleteGame} onRemove={removeFromCurrentList} activeListId={activeListId} sectionId={`list-${activeListId}`} openHelp={handleOpenHelp} lastUpdated={null} onSelectList={null} />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-10 animate-fade-in">
+                                        <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
+                                            <div className="relative z-10 space-y-8">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                    <div>
+                                                        <h2 className="text-3xl font-black text-white mb-2 flex items-center gap-3"><Icons.Database className="w-8 h-8 text-blue-500" /> すべてのデータ</h2>
+                                                        <p className="text-slate-500 text-sm font-medium">登録済み全データの俯瞰と分析リストの統合管理ハブ</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-slate-850/50 border border-slate-800 px-5 py-3 rounded-2xl">
+                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">登録タイトル</div>
+                                                            <div className="text-xl font-black text-white">{games.length}</div>
+                                                        </div>
+                                                        <div className="bg-slate-850/50 border border-slate-800 px-5 py-3 rounded-2xl">
+                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">分析リスト</div>
+                                                            <div className="text-xl font-black text-blue-400">{lists.length}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t border-slate-800/50">
+                                                    <div>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Calendar className="w-3.5 h-3.5" /> リリース年統計 (直近)</h4>
+                                                        <div className="h-28">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart data={releaseYearStats.slice(0, 10).reverse()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                                                    <XAxis dataKey="year" stroke="#475569" fontSize={9} />
+                                                                    <Tooltip
+                                                                        cursor={false}
+                                                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', fontSize: '10px', borderRadius: '8px' }}
+                                                                        itemStyle={{ color: '#60a5fa' }}
+                                                                    />
+                                                                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Hash className="w-3.5 h-3.5" /> 人気タグ構成 (全体)</h4>
+                                                        <div className="h-28">
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart data={tagAnalytics.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
+                                                                    <XAxis type="number" hide />
+                                                                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={9} width={80} />
+                                                                    <Tooltip cursor={false} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', fontSize: '10px' }} />
+                                                                    <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        </div>
+                                                    </div>
+                                               </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-6 border-t border-slate-800">
+                                            {renderGameSections()}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {view === 'calculator' && <CalculatorView onBack={() => navigate('dashboard')} />}
+
+                        {view === 'compare' && <CompareView lists={lists} games={recalculatedGames} onBack={() => navigate('dashboard')} />}
+
+                        {view === 'detail' && selectedGame && (
+                            <div className="animate-fade-in pb-20">
+                                <div className="flex items-center justify-between mb-6">
+                                    <button onClick={() => navigate('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800 rounded-lg"><Icons.ArrowRight className="w-4 h-4 rotate-180" /> 戻る</button>
+                                </div>
+
+                                <div className="mb-6"></div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    <div className="lg:col-span-1 flex flex-col h-full space-y-6">
+                                        <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900">
+                                            <img src={selectedGame.headerImage} className="w-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                                        </div>
+                                        <div className="flex gap-2 no-capture">
+                                            <a href={`https://store.steampowered.com/app/${selectedGame.id}`} target="_blank" className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl text-sm font-bold transition-all border border-slate-700 text-white text-center"><Icons.ShoppingCart className="w-4 h-4" /> Store</a>
+                                            <a href={`https://steamdb.info/app/${selectedGame.id}`} target="_blank" className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl text-sm font-bold transition-all border border-slate-700 text-white text-center"><Icons.Database className="w-4 h-4" /> SteamDB</a>
+                                        </div>
+                                        <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 shadow-inner space-y-4 mt-auto">
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Info className="w-3.5 h-3.5" /> 基本情報</h4>
+                                            <div className="space-y-3 text-sm">
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">開発元</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.developer}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">パブリッシャー</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.publisher}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">リリース日</span><span className="text-white font-medium font-mono">{selectedGame.releaseDate}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">定価</span><span className="text-white font-medium font-mono">{formatYen(selectedGame.price)}</span></div>
+                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">ジャンル</span><div className="flex flex-wrap gap-1.5">{selectedGame.genres.map(t => <span key={t} className="px-2 py-0.5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] text-blue-400 font-bold">{t}</span>)}</div></div>
+                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">ユーザータグ</span><div className="flex flex-wrap gap-1.5">{selectedGame.userTags.map(t => <span key={t} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] text-slate-300">{t}</span>)}</div></div>
+                                            </div>
+                                        </div>
+
+                                        {similarTitles.length > 0 ? (
+                                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.LayoutGrid className="w-3.5 h-3.5" /> 類似タイトル</h4>
+                                                <div className="space-y-3">
+                                                    {similarTitles.map(g => (
+                                                        <div key={g.id} onClick={() => navigate('detail', g)} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition-all border border-transparent hover:border-slate-700 group">
+                                                            <img src={g.headerImage} className="w-16 h-8 object-cover rounded shadow-lg" />
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-[11px] font-bold text-white truncate group-hover:text-blue-400 transition-colors">{g.title}</div>
+                                                            </div>
+                                                            <div className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">{Math.round(g.similarityScore * 100)}%</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-2xl p-6 text-center">
+                                                <Icons.LayoutGrid className="w-8 h-8 text-slate-700 mx-auto mb-3" />
+                                                <p className="text-sm text-slate-500 font-medium">類似タイトルが見つかりませんでした</p>
+                                                <p className="text-xs text-slate-600 mt-1">より多くのゲームを登録すると、類似したタイトルを発見できます</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="lg:col-span-2 flex flex-col h-full space-y-8">
+                                        <div>
+                                            <h2 className="text-4xl font-black text-white leading-tight mb-3">{selectedGame.title}</h2>
+                                            {selectedGame.belongingLists && selectedGame.belongingLists.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mb-4">
+                                                    {selectedGame.belongingLists.map(l => (
+                                                        <button
+                                                            key={l.id}
+                                                            onClick={() => { setActiveListId(l.id); navigate('dashboard'); }}
+                                                            className="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5"
+                                                        >
+                                                            <Icons.Folder className="w-3 h-3" /> {l.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800/50 shadow-inner">
+                                            <div className="text-slate-300 text-sm leading-relaxed max-h-[300px] overflow-y-auto pr-4 custom-scrollbar" dangerouslySetInnerHTML={{ __html: selectedGame.description }}></div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 mt-auto">
+                                            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl group hover:border-blue-500/30 transition-all">
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">総レビュー</div>
+                                                <div className="text-xl md:text-2xl font-black text-blue-400 font-mono truncate">{formatNumber(selectedGame.reviews)}</div>
+                                            </div>
+                                            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl group hover:border-blue-500/30 transition-all">
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">スコア</div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`text-2xl font-black ${calculateReviewColor(selectedGame.reviewScore)}`}>{selectedGame.reviewScore}%</div>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border border-opacity-30 ${selectedGame.reviewScore >= 80 ? 'bg-green-500/20 text-green-400 border-green-500' : 'bg-slate-700 text-slate-400 border-slate-600'}`}>{getReviewText(selectedGame.reviewScore)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center justify-between">トレンド分析 (推定) <span className="bg-slate-800 text-[9px] px-2 py-0.5 rounded text-slate-400">LIVE DATA NOT AVAILABLE</span></h4>
+                                            <div className="h-56">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                            <ComposedChart data={selectedGame.history && selectedGame.history.length > 0 ? selectedGame.history : Array.from({ length: 12 }, (_, i) => ({ name: `${i + 1}月`, sales: Math.floor(Math.random() * 500) + 100, players: Math.floor(Math.random() * 300) + 50 }))}>
+                                                        <defs>
+                                                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                                        <XAxis dataKey="name" stroke="#475569" fontSize={10} axisLine={false} tickLine={false} />
+                                                        <YAxis yAxisId="left" stroke="#3b82f6" fontSize={10} label={{ value: 'Sales', angle: -90, position: 'insideLeft', fill: '#3b82f6', fontSize: 10 }} />
+                                                        <YAxis yAxisId="right" orientation="right" stroke="#10b981" fontSize={10} label={{ value: 'Players', angle: 90, position: 'insideRight', fill: '#10b981', fontSize: 10 }} />
+                                                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', color: '#fff', borderRadius: '8px', fontSize: '12px', padding: '8px 12px' }} />
+                                                        <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                                                        <Area yAxisId="left" type="monotone" dataKey="sales" name="Sales" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSales)" strokeWidth={2} />
+                                                        <Line yAxisId="right" type="monotone" dataKey="players" name="Players" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                                                    </ComposedChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+
+                                        {selectedGame.screenshots && selectedGame.screenshots.length > 0 && (
+                                            <div className="space-y-4">
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Image className="w-3.5 h-3.5" /> スクリーンショット</h4>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                    {selectedGame.screenshots.map((s, idx) => (
+                                                        <div key={idx} onClick={() => setImageViewSrc(s.path_full)} className="aspect-video rounded-lg overflow-hidden border border-slate-800 cursor-pointer hover:border-blue-500 transition-all group relative">
+                                                            <img src={s.path_thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
+                                                            <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/10 transition-colors"></div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            <ToastProvider>
+                <App />
+            </ToastProvider>
+        );
+    </script>
+</body>
+
+</html>

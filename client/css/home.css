@@ -1,0 +1,361 @@
+/**
+ * Compath - ホーム画面スタイル
+ */
+
+/* ホーム画面レイアウト */
+#home-page.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ヘッダー */
+.home-header {
+  padding: 40px 20px;
+  text-align: center;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+}
+
+.logo-container {
+  display: inline-block;
+}
+
+/* 言語切り替え */
+.language-switcher {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 4px;
+}
+
+.lang-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+  color: var(--text-primary);
+}
+
+.lang-btn.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.logo {
+  font-family: var(--font-accent);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.beta-badge {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-secondary);
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+
+.logo-icon {
+  display: inline-block;
+  color: var(--accent-primary);
+  font-size: 2.5rem;
+}
+
+.logo-icon-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.logo-subtitle {
+  font-family: var(--font-accent);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-secondary);
+  letter-spacing: 0.3em;
+  margin-top: 8px;
+}
+
+/* ヒーローセクション */
+.home-main {
+  flex: 1;
+  padding: 60px 20px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.hero-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 20px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* ツールグリッド */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tool-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px var(--shadow-color);
+}
+
+.tool-card:hover .tool-icon {
+  color: var(--accent-primary);
+  transform: scale(1.1);
+}
+
+.tool-card.coming-soon {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.tool-card.coming-soon:hover {
+  transform: none;
+  border-color: var(--border-color);
+  box-shadow: none;
+  background: var(--bg-card);
+}
+
+.tool-card.coming-soon:hover .tool-icon {
+  transform: none;
+  color: var(--text-muted);
+}
+
+.tool-card.coming-soon .tool-icon {
+  color: var(--text-muted);
+}
+
+.tool-card.coming-soon .tool-name {
+  color: var(--text-muted);
+}
+
+.tool-card.coming-soon .tool-description {
+  color: var(--text-muted);
+}
+
+/* 各ツールカードの固有カラー */
+/* レビュー分析 - オレンジ */
+.tool-card[id="btn-review-insight"] {
+  --card-accent: #f97316;
+}
+.tool-card[id="btn-review-insight"]:hover {
+  border-color: #f97316;
+  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.2);
+}
+.tool-card[id="btn-review-insight"]:hover .tool-icon {
+  color: #f97316;
+}
+.tool-card[id="btn-review-insight"] .tool-icon {
+  color: #fb923c;
+}
+
+/* ストア診断 - グリーン */
+.tool-card[id="btn-store-doctor"] {
+  --card-accent: #22c55e;
+}
+.tool-card[id="btn-store-doctor"]:hover {
+  border-color: #22c55e;
+  box-shadow: 0 8px 30px rgba(34, 197, 94, 0.2);
+}
+.tool-card[id="btn-store-doctor"]:hover .tool-icon {
+  color: #22c55e;
+}
+.tool-card[id="btn-store-doctor"] .tool-icon {
+  color: #4ade80;
+}
+
+/* Steamゲーム分析 - ブルー */
+.tool-card[id="btn-steamlytic"] {
+  --card-accent: #3b82f6;
+}
+.tool-card[id="btn-steamlytic"]:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.2);
+}
+.tool-card[id="btn-steamlytic"]:hover .tool-icon {
+  color: #3b82f6;
+}
+.tool-card[id="btn-steamlytic"] .tool-icon {
+  color: #60a5fa;
+}
+
+.tool-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  color: var(--accent-secondary);
+  transition: all 0.3s ease;
+}
+
+.tool-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tool-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.tool-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.tool-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* フッター */
+.home-footer {
+  padding: 30px 20px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.home-footer p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.footer-note {
+  margin-top: 10px;
+  font-size: 0.75rem !important;
+  line-height: 1.6;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .logo {
+    font-size: 2.2rem;
+  }
+
+  .logo-subtitle {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+  }
+
+  .hero-title {
+    font-size: 1.6rem;
+  }
+
+  .hero-description {
+    font-size: 1rem;
+  }
+
+  .home-main {
+    padding: 40px 16px;
+  }
+
+  .tools-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-header {
+    padding: 60px 16px 30px;
+  }
+
+  .header-right {
+    top: 12px;
+    right: 12px;
+  }
+
+  .language-switcher {
+    top: 12px;
+    right: 12px;
+  }
+
+  .logo {
+    font-size: 1.8rem;
+  }
+
+  .logo-icon {
+    font-size: 1.6rem;
+  }
+
+  .logo-icon-img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .hero-section {
+    margin-bottom: 40px;
+  }
+
+  /* Proバッジとアップグレードボタンのサイズ調整 */
+  .pro-badge,
+  .upgrade-btn {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+}

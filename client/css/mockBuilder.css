@@ -1,0 +1,647 @@
+/**
+ * Compath - モックビルダー スタイル
+ */
+
+/* ========================================
+   要件定義フォームモーダル
+   ======================================== */
+
+.mock-builder-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 15, 0.95);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+
+.mock-builder-modal {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  margin: 20px 0;
+  animation: slideUp 0.3s ease;
+}
+
+.mock-builder-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.mock-builder-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.mock-builder-header {
+  padding: 32px 32px 24px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mock-builder-header h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.mock-builder-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.mock-builder-content {
+  padding: 24px 32px 32px;
+}
+
+/* フォームセクション */
+.mock-form-section {
+  margin-bottom: 32px;
+}
+
+.mock-form-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.mock-form-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(108, 92, 231, 0.1);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 0 8px 8px 0;
+}
+
+.section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  border-radius: 50%;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* ゲームタイプ選択グリッド */
+.mock-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .mock-type-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mock-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mock-type-card:hover {
+  border-color: var(--accent-secondary);
+  background: var(--bg-card-hover);
+}
+
+.mock-type-card.selected {
+  border-color: var(--accent-primary);
+  background: rgba(108, 92, 231, 0.15);
+}
+
+.mock-type-icon {
+  font-size: 2rem;
+}
+
+.mock-type-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.mock-type-dim {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* アートスタイル選択 */
+.mock-style-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .mock-style-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.mock-style-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mock-style-card:hover {
+  border-color: var(--accent-secondary);
+}
+
+.mock-style-card.selected {
+  border-color: var(--accent-primary);
+  background: rgba(108, 92, 231, 0.15);
+}
+
+.mock-style-icon {
+  font-size: 1.5rem;
+}
+
+.mock-style-name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* カラーパレット選択 */
+.mock-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .mock-palette-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mock-palette-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mock-palette-card:hover {
+  border-color: var(--accent-secondary);
+}
+
+.mock-palette-card.selected {
+  border-color: var(--accent-primary);
+}
+
+.palette-preview {
+  display: flex;
+  gap: 4px;
+}
+
+.palette-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.palette-custom {
+  width: 100px;
+  height: 24px;
+  background: linear-gradient(90deg, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.palette-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.custom-colors {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: 8px;
+}
+
+.custom-colors label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.color-inputs {
+  display: flex;
+  gap: 12px;
+}
+
+.custom-color {
+  width: 50px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 入力フィールド */
+.mock-input-group {
+  margin-bottom: 16px;
+}
+
+.mock-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.mock-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .mock-input-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mock-select,
+.mock-input,
+.mock-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.mock-select:focus,
+.mock-input:focus,
+.mock-textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+}
+
+.mock-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.mock-range {
+  width: calc(100% - 60px);
+  margin-right: 10px;
+}
+
+/* メカニクス選択 */
+.mock-mechanics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .mock-mechanics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .mock-mechanics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mock-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.mock-checkbox:hover {
+  border-color: var(--accent-secondary);
+}
+
+.mock-checkbox input:checked + * {
+  color: var(--text-primary);
+}
+
+.mock-checkbox:has(input:checked) {
+  border-color: var(--accent-primary);
+  background: rgba(108, 92, 231, 0.1);
+}
+
+/* フォームアクション */
+.mock-form-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.mock-form-actions .btn {
+  flex: 1;
+  padding: 14px 24px;
+  font-size: 1rem;
+}
+
+/* ========================================
+   モックプレイヤー画面
+   ======================================== */
+
+.mock-player-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.mock-player-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.mock-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mock-player-header h2 {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.mock-player-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.mock-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mock-ctrl-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.mock-close-btn {
+  font-size: 1.5rem;
+}
+
+.mock-player-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #000;
+}
+
+.mock-game-area {
+  position: relative;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+#mock-canvas {
+  display: block;
+}
+
+.mock-ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.mock-player-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.mock-controls-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+.mock-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.stat-item {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* ========================================
+   CSV出力ボタン
+   ======================================== */
+
+.csv-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.csv-export-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.csv-export-btn.pro-only {
+  position: relative;
+}
+
+.csv-export-btn.pro-only::after {
+  content: 'Pro';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  padding: 2px 6px;
+  background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+  border-radius: 4px;
+  color: #1a1a2e;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+/* Pro機能ロック表示 */
+.pro-feature-lock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  color: var(--text-muted);
+}
+
+.pro-feature-lock svg {
+  opacity: 0.5;
+}
+
+.pro-unlock-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pro-unlock-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+/* ========================================
+   ブルーオーシャンにモックビルダーリンク
+   ======================================== */
+
+.mock-builder-cta {
+  margin-top: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.1) 0%, rgba(162, 155, 254, 0.1) 100%);
+  border: 1px solid var(--accent-primary);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.mock-builder-cta h4 {
+  color: var(--accent-secondary);
+  margin-bottom: 8px;
+}
+
+.mock-builder-cta p {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.mock-builder-cta .btn {
+  padding: 12px 24px;
+}

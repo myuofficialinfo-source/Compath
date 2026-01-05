@@ -1,0 +1,603 @@
+/**
+ * Compath - プラン・課金・広告スタイル
+ */
+
+/* ========================================
+   ヘッダー右側のUI
+   ======================================== */
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* 使用回数カウンター */
+.usage-counter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.usage-counter .usage-count {
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.usage-counter .usage-label {
+  color: var(--text-muted);
+}
+
+.usage-counter.low .usage-count {
+  color: var(--negative);
+}
+
+.usage-counter .unlimited {
+  color: var(--positive);
+  font-weight: 500;
+}
+
+/* Proバッジ（ボタンとして動作） */
+.pro-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+  border: none;
+  border-radius: 20px;
+  color: #1a1a2e;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 10px rgba(241, 196, 15, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pro-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(241, 196, 15, 0.5);
+}
+
+.pro-badge .pro-icon {
+  font-size: 0.9rem;
+}
+
+/* アップグレードボタン */
+.upgrade-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.upgrade-btn .upgrade-icon {
+  font-size: 0.9rem;
+}
+
+/* ========================================
+   広告プレースホルダー
+   ======================================== */
+
+.ad-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+}
+
+.ad-header-container {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ad-footer-container {
+  border-top: 1px solid var(--border-color);
+  margin-top: 40px;
+}
+
+.ad-placeholder {
+  width: 728px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.ad-placeholder-inner {
+  position: relative;
+  width: 100%;
+  padding-bottom: 12.36%; /* 90/728 */
+  background: var(--bg-card);
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ad-placeholder-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.ad-label {
+  padding: 2px 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ad-text {
+  font-size: 0.85rem;
+}
+
+.ad-size {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.ad-remove-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ad-remove-link:hover {
+  color: var(--accent-secondary);
+}
+
+/* サイドバー広告 */
+.ad-sidebar {
+  width: 300px;
+}
+
+.ad-sidebar .ad-placeholder-inner {
+  padding-bottom: 83.33%; /* 250/300 */
+}
+
+/* インライン広告 */
+.ad-inline {
+  width: 336px;
+  margin: 24px auto;
+}
+
+.ad-inline .ad-placeholder-inner {
+  padding-bottom: 83.33%; /* 280/336 */
+}
+
+/* ========================================
+   料金プランモーダル
+   ======================================== */
+
+.pricing-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 15, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pricing-modal {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 40px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pricing-modal-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.pricing-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pricing-subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* 2プランの場合 */
+.pricing-cards-two {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 768px) {
+  .pricing-cards,
+  .pricing-cards-two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.pricing-card.recommended {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 30px rgba(108, 92, 231, 0.2);
+}
+
+.pricing-card.current {
+  border-color: var(--positive);
+}
+
+.recommended-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 16px;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  border-radius: 20px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.plan-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.plan-price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  margin-bottom: 24px;
+}
+
+.plan-features {
+  list-style: none;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.plan-features .check-icon {
+  color: var(--positive);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.plan-select-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.plan-select-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.plan-select-btn.current {
+  background: var(--bg-secondary);
+  border: 1px solid var(--positive);
+  color: var(--positive);
+  cursor: default;
+}
+
+.plan-select-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.pricing-note {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ========================================
+   制限到達モーダル
+   ======================================== */
+
+.limit-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 15, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.limit-modal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  animation: slideUp 0.3s ease;
+}
+
+.limit-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.limit-modal h3 {
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.limit-modal p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.limit-modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.limit-modal-buttons .btn {
+  flex: 1;
+}
+
+/* ========================================
+   トースト通知
+   ======================================== */
+
+.plan-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  z-index: 3000;
+  animation: slideIn 0.3s ease;
+}
+
+.plan-toast.success {
+  border-color: var(--positive);
+  background: var(--positive-bg);
+}
+
+.plan-toast.error {
+  border-color: var(--negative);
+  background: var(--negative-bg);
+}
+
+/* ========================================
+   Pro専用機能バッジ
+   ======================================== */
+
+.pro-feature-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+  border-radius: 4px;
+  color: #1a1a2e;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pro-feature-locked {
+  position: relative;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.pro-feature-locked::after {
+  content: 'Pro';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%);
+  border-radius: 4px;
+  color: #1a1a2e;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .header-right {
+    gap: 8px;
+  }
+
+  .usage-counter {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .upgrade-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+
+  .upgrade-btn .upgrade-text {
+    display: none;
+  }
+
+  .pro-badge {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+
+  .pro-badge .pro-text {
+    display: none;
+  }
+
+  .ad-placeholder-content {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pricing-modal {
+    padding: 24px;
+  }
+
+  .pricing-title {
+    font-size: 1.5rem;
+  }
+
+  .plan-price {
+    font-size: 1.5rem;
+  }
+}
+
+/* ========================================
+   デモモード - PRO UI・広告を非表示
+   ======================================== */
+
+/* ヘッダーのアップグレードボタンを非表示 */
+.upgrade-btn {
+  display: none !important;
+}
+
+/* PRO専用機能ボタン（CSVエクスポート等）を非表示 */
+.csv-export-btn {
+  display: none !important;
+}
+
+/* PRO機能バッジ・ロック表示を非表示 */
+.pro-feature-badge,
+.pro-feature-locked {
+  display: none !important;
+}
+
+/* 広告関連をすべて非表示 */
+.ad-container,
+.ad-placeholder,
+.ad-header-container,
+.ad-footer-container,
+.ad-sidebar,
+.ad-inline {
+  display: none !important;
+}

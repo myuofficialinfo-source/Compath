@@ -1,0 +1,943 @@
+/**
+ * Global Launch Commander スタイル
+ */
+
+/* ページレイアウト */
+#launch-commander-page {
+  display: none;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+#launch-commander-page.active {
+  display: block;
+}
+
+/* 日付セレクターグループ */
+.date-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.date-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.date-selector-label {
+  min-width: 40px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* コンパクトなタグセレクター */
+.tag-selector.compact {
+  gap: 6px;
+}
+
+.tag-selector.compact .tag-option {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* 結果セクション */
+.lc-results {
+  display: none;
+}
+
+.lc-results.active {
+  display: block;
+}
+
+/* サマリーカード */
+.lc-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.lc-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.lc-days-counter {
+  text-align: center;
+  padding: 16px 24px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+}
+
+.lc-days-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.lc-days-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.lc-summary-text {
+  flex: 1;
+  padding-right: 24px;
+}
+
+.lc-summary-text h4 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.lc-summary-text p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 警告カード */
+.lc-warnings {
+  margin-bottom: 24px;
+}
+
+.lc-warning-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.lc-warning-item.critical {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.lc-warning-item.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.lc-warning-item.info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.lc-warning-icon {
+  font-size: 1.5rem;
+}
+
+.lc-warning-text {
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* タブナビゲーション */
+.lc-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.lc-tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lc-tab:hover {
+  color: var(--text-primary);
+}
+
+.lc-tab.active {
+  background: var(--bg-card);
+  color: var(--accent-primary);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+/* タブコンテンツ */
+.lc-tab-content {
+  display: none;
+}
+
+.lc-tab-content.active {
+  display: block;
+}
+
+/* タイムライン（ガントチャート風） */
+.lc-timeline {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.lc-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lc-timeline-header h4 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.lc-timeline-legend {
+  display: flex;
+  gap: 16px;
+}
+
+.lc-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.lc-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.lc-legend-dot.critical { background: var(--accent-primary); }
+.lc-legend-dot.high { background: #f59e0b; }
+.lc-legend-dot.medium { background: #10b981; }
+.lc-legend-dot.event { background: #8b5cf6; }
+
+.lc-timeline-items {
+  position: relative;
+  padding-left: 24px;
+}
+
+.lc-timeline-items::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-color);
+}
+
+.lc-timeline-item {
+  position: relative;
+  padding: 16px 0 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lc-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.lc-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 20px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+}
+
+.lc-timeline-item.critical::before { border-color: var(--accent-primary); background: var(--accent-primary); }
+.lc-timeline-item.high::before { border-color: #f59e0b; background: #f59e0b; }
+.lc-timeline-item.medium::before { border-color: #10b981; }
+.lc-timeline-item.event::before { border-color: #8b5cf6; background: #8b5cf6; }
+.lc-timeline-item.completed::before { border-color: #10b981; background: #10b981; }
+
+.lc-timeline-item.urgent {
+  background: rgba(239, 68, 68, 0.05);
+  margin: -16px -24px;
+  padding: 16px 24px 16px 48px;
+  border-radius: 8px;
+}
+
+.lc-timeline-date {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.lc-timeline-task {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.lc-timeline-category {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.lc-timeline-item.urgent .lc-timeline-category {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* 地域戦略カード */
+.lc-region-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.lc-region-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+}
+
+.lc-region-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lc-region-header .flag {
+  font-size: 2rem;
+}
+
+.lc-region-header h4 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.lc-region-section {
+  margin-bottom: 16px;
+}
+
+.lc-region-section h5 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lc-region-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lc-region-tag {
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.lc-region-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.lc-region-tip-icon {
+  color: var(--accent-primary);
+}
+
+/* イベントカレンダー */
+.lc-events-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+}
+
+.lc-events-list h4 {
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.lc-event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lc-event-item:last-child {
+  border-bottom: none;
+}
+
+.lc-event-date-box {
+  min-width: 60px;
+  text-align: center;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.lc-event-month {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.lc-event-day {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lc-event-info {
+  flex: 1;
+}
+
+.lc-event-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.lc-event-importance {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.lc-event-importance.critical {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.lc-event-importance.high {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.lc-event-importance.medium {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.lc-event-recommendation {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.lc-event-action {
+  font-weight: 500;
+  color: var(--accent-primary);
+}
+
+/* To-Doリスト */
+.lc-todo-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+}
+
+.lc-todo-list h4 {
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.lc-todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.lc-todo-item:hover {
+  background: var(--bg-secondary);
+}
+
+.lc-todo-item.urgent {
+  border-left: 3px solid #ef4444;
+}
+
+.lc-todo-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.lc-todo-content {
+  flex: 1;
+}
+
+.lc-todo-task {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.lc-todo-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.lc-todo-priority {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.lc-todo-priority.critical {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.lc-todo-priority.high {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+/* Plan B ボタン */
+.lc-planb-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  text-align: center;
+}
+
+.lc-planb-section h4 {
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.lc-planb-section p {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.lc-planb-btn {
+  padding: 12px 24px;
+  background: transparent;
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
+  color: var(--accent-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lc-planb-btn:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* テキストエリア・入力フィールド */
+.concept-textarea,
+.concept-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.concept-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.concept-textarea:focus,
+.concept-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+}
+
+.concept-textarea::placeholder,
+.concept-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* SNS入力欄 */
+.sns-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sns-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sns-label {
+  min-width: 100px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sns-input {
+  flex: 1;
+}
+
+/* ガントチャート */
+.lc-gantt {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.lc-gantt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lc-gantt-header h4 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.lc-gantt-months {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+  min-width: 800px;
+}
+
+.lc-gantt-month {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border-color);
+}
+
+.lc-gantt-month:last-child {
+  border-right: none;
+}
+
+.lc-gantt-month.current {
+  background: rgba(108, 92, 231, 0.1);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.lc-gantt-month.release {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.lc-gantt-rows {
+  min-width: 800px;
+}
+
+.lc-gantt-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.lc-gantt-row:last-child {
+  border-bottom: none;
+}
+
+.lc-gantt-task-name {
+  width: 180px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  padding-right: 12px;
+}
+
+.lc-gantt-bar-container {
+  flex: 1;
+  position: relative;
+  height: 28px;
+}
+
+.lc-gantt-bar {
+  position: absolute;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 0.75rem;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.lc-gantt-bar:hover {
+  transform: scaleY(1.2);
+  z-index: 10;
+}
+
+.lc-gantt-bar.critical {
+  background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+.lc-gantt-bar.high {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.lc-gantt-bar.medium {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.lc-gantt-bar.event {
+  background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.lc-gantt-bar.completed {
+  background: linear-gradient(90deg, #6b7280 0%, #9ca3af 100%);
+  opacity: 0.7;
+}
+
+.lc-gantt-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-primary);
+  z-index: 5;
+}
+
+.lc-gantt-today::after {
+  content: '今日';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+.lc-gantt-release {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ef4444;
+  z-index: 5;
+}
+
+.lc-gantt-release::after {
+  content: 'リリース';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #ef4444;
+  white-space: nowrap;
+}
+
+/* 競合マーケティング事例 */
+.lc-marketing-cases {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.lc-marketing-cases h4 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-case-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.lc-case-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.lc-case-card:hover {
+  border-color: var(--accent-primary);
+}
+
+.lc-case-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.lc-case-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-secondary);
+}
+
+.lc-case-info h5 {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.lc-case-info .lc-case-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.lc-case-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.lc-case-stat {
+  text-align: center;
+}
+
+.lc-case-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.lc-case-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.lc-case-tactics {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.lc-case-tactics h6 {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.lc-case-tactics ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.lc-case-tactics li {
+  margin-bottom: 4px;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .lc-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lc-title {
+    font-size: 1.4rem;
+  }
+
+  .lc-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lc-tabs {
+    flex-wrap: wrap;
+  }
+
+  .lc-tab {
+    flex: none;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .lc-summary-header {
+    flex-direction: column;
+  }
+
+  .lc-summary-text {
+    padding-right: 0;
+    margin-bottom: 16px;
+  }
+
+  .lc-region-cards {
+    grid-template-columns: 1fr;
+  }
+}

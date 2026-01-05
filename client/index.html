@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compath - Steam開発者向けアシスタントツール</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/icom.png">
+  <link rel="apple-touch-icon" href="/images/icom.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/home.css">
+  <link rel="stylesheet" href="/css/review-insight.css">
+  <link rel="stylesheet" href="/css/store-doctor.css">
+  <link rel="stylesheet" href="/css/blue-ocean.css">
+  <link rel="stylesheet" href="/css/launch-commander.css">
+  <link rel="stylesheet" href="/css/visual-trend.css">
+  <link rel="stylesheet" href="/css/plan.css">
+  <link rel="stylesheet" href="/css/mockBuilder.css">
+  <link rel="stylesheet" href="/css/steamlytic.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ホーム画面 -->
+    <div id="home-page" class="page active">
+      <header class="home-header">
+        <div class="logo-container">
+          <h1 class="logo">
+            <img src="/images/icom.png" alt="Compath" class="logo-icon-img">
+            Compath<span class="beta-badge" data-i18n="betaBadge">(β版)</span>
+          </h1>
+          <p class="logo-subtitle">Steam Developer Assistant</p>
+        </div>
+        <div class="header-right">
+          <!-- Proバッジ（Pro会員のみ表示）クリックでプラン変更可能 -->
+          <button class="pro-badge" style="display:none;" onclick="UserPlan.showPricingModal()">
+            <span class="pro-icon">&#9733;</span>
+            <span class="pro-text">Pro</span>
+          </button>
+          <!-- アップグレードボタン（無料会員のみ表示） -->
+          <button class="upgrade-btn" onclick="UserPlan.showPricingModal()">
+            <span class="upgrade-icon">&#9733;</span>
+            <span class="upgrade-text">Proへ</span>
+          </button>
+          <div class="language-switcher">
+            <button class="lang-btn active" data-lang="ja">日本語</button>
+            <button class="lang-btn" data-lang="en">EN</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- ヘッダー広告 -->
+      <div class="ad-container ad-header-container">
+        <div class="ad-placeholder" id="ad-header">
+          <div class="ad-placeholder-inner">
+            <div class="ad-placeholder-content">
+              <span class="ad-label">AD</span>
+              <span class="ad-text">広告スペース</span>
+              <span class="ad-size">728x90</span>
+            </div>
+          </div>
+          <a href="#" class="ad-remove-link" onclick="UserPlan.showPricingModal(); return false;">広告を非表示にする</a>
+        </div>
+      </div>
+
+      <main class="home-main">
+        <div class="hero-section">
+          <h2 class="hero-title">Steam開発者のための<br>サポートツール</h2>
+          <p class="hero-description">
+            レビュー分析、市場調査、ユーザーフィードバックの可視化。<br>
+            あなたのゲーム開発をデータで支援します。
+          </p>
+        </div>
+
+        <div class="tools-grid">
+          <!-- Steam Review Insight -->
+          <a href="#" class="tool-card" data-tool="review-insight" id="btn-review-insight">
+            <div class="tool-icon">
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 24h32M16 32h24M16 40h28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="48" cy="44" r="10" fill="#1a1a2e" stroke="currentColor" stroke-width="2"/>
+                <path d="M48 40v8M44 44h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3 class="tool-name">Steam Review Insight</h3>
+            <p class="tool-description">
+              レビュー要約・分析AI<br>
+              ポジ/ネガを可視化し、改善点を発見
+            </p>
+            <div class="tool-tags">
+              <span class="tag">AI分析</span>
+              <span class="tag">ワードクラウド</span>
+              <span class="tag">日本語翻訳</span>
+            </div>
+          </a>
+
+          <!-- Steam Store Doctor -->
+          <a href="#" class="tool-card" data-tool="store-doctor" id="btn-store-doctor">
+            <div class="tool-icon">
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="2"/>
+                <path d="M32 18v14l10 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="32" cy="32" r="3" fill="currentColor"/>
+                <path d="M20 48l-4 8M44 48l4 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M14 26l-6-2M50 26l6-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3 class="tool-name">Steam Store Doctor</h3>
+            <p class="tool-description">
+              ストア評価診断<br>
+              タグ・ビジュアル・説明文を採点
+            </p>
+            <div class="tool-tags">
+              <span class="tag">100点満点</span>
+              <span class="tag">タグ診断</span>
+              <span class="tag">改善提案</span>
+            </div>
+          </a>
+
+          <!-- Steamlytic - Steamゲーム分析 -->
+          <a href="#" class="tool-card" data-tool="steamlytic" id="btn-steamlytic">
+            <div class="tool-icon">
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="16" width="48" height="32" rx="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 36l8-8 6 4 10-10 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="16" cy="36" r="2" fill="currentColor"/>
+                <circle cx="24" cy="28" r="2" fill="currentColor"/>
+                <circle cx="30" cy="32" r="2" fill="currentColor"/>
+                <circle cx="40" cy="22" r="2" fill="currentColor"/>
+                <circle cx="48" cy="28" r="2" fill="currentColor"/>
+                <path d="M12 52h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M20 52v-4M32 52v-4M44 52v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3 class="tool-name" data-i18n="toolSteamlytic">Steamゲーム分析</h3>
+            <p class="tool-description">
+              Steamゲーム分析<br>
+              売上推定・競合比較・トレンド追跡
+            </p>
+            <div class="tool-tags">
+              <span class="tag">売上推定</span>
+              <span class="tag">競合比較</span>
+              <span class="tag">チャート</span>
+            </div>
+          </a>
+
+          <!-- Coming Soon -->
+          <div class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+                <text x="32" y="36" text-anchor="middle" fill="currentColor" font-size="12">?</text>
+              </svg>
+            </div>
+            <h3 class="tool-name">Coming Soon</h3>
+            <p class="tool-description">
+              新しいツールを準備中です
+            </p>
+          </div>
+
+          <!-- Coming Soon -->
+          <div class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+                <text x="32" y="36" text-anchor="middle" fill="currentColor" font-size="12">?</text>
+              </svg>
+            </div>
+            <h3 class="tool-name">Coming Soon</h3>
+            <p class="tool-description">
+              新しいツールを準備中です
+            </p>
+          </div>
+
+          <!-- Coming Soon -->
+          <div class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+                <text x="32" y="36" text-anchor="middle" fill="currentColor" font-size="12">?</text>
+              </svg>
+            </div>
+            <h3 class="tool-name">Coming Soon</h3>
+            <p class="tool-description">
+              新しいツールを準備中です
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <!-- フッター広告 -->
+      <div class="ad-container ad-footer-container">
+        <div class="ad-placeholder" id="ad-footer">
+          <div class="ad-placeholder-inner">
+            <div class="ad-placeholder-content">
+              <span class="ad-label">AD</span>
+              <span class="ad-text">広告スペース</span>
+              <span class="ad-size">728x90</span>
+            </div>
+          </div>
+          <a href="#" class="ad-remove-link" onclick="UserPlan.showPricingModal(); return false;">広告を非表示にする</a>
+        </div>
+      </div>
+
+      <footer class="home-footer">
+        <p>&copy; Dank Hearts Inc. All right reserved.</p>
+      </footer>
+    </div>
+
+    <!-- Review Insight ページ -->
+    <div id="review-insight-page" class="page">
+      <!-- JavaScriptで動的に読み込み -->
+    </div>
+
+    <!-- Store Doctor ページ -->
+    <div id="store-doctor-page" class="page">
+      <!-- JavaScriptで動的に読み込み -->
+    </div>
+
+    <!-- Blue Ocean Scout ページ -->
+    <div id="blue-ocean-page" class="page">
+      <!-- JavaScriptで動的に読み込み -->
+    </div>
+
+    <!-- Global Launch Commander ページ -->
+    <div id="launch-commander-page" class="page">
+      <!-- JavaScriptで動的に読み込み -->
+    </div>
+
+    <!-- Visual Trend Hunter ページ -->
+    <div id="visual-trend-page" class="page">
+      <!-- JavaScriptで動的に読み込み -->
+    </div>
+
+    <!-- Steamlytic ページ -->
+    <div id="steamlytic-page" class="page">
+      <!-- iframeで埋め込み -->
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/plan.js"></script>
+  <script src="/js/mockBuilder.js"></script>
+  <script src="/js/router.js"></script>
+</body>
+</html>
