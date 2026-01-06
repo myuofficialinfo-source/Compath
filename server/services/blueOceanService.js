@@ -143,88 +143,189 @@ async function analyzeMarket(concept) {
 }
 
 /**
- * Steam検索ページからタグに該当するゲームのAppIDを取得
- * HTMLをパースしてappidを抽出
+ * Steam Store Search APIを使ってタグに該当するゲームを検索
+ * HTMLスクレイピングの代わりにAPIエンドポイントを使用
  */
 async function searchGamesByTags(tags) {
-  const appIds = new Set();
+  const allGames = [];
+  const seenIds = new Set();
 
   try {
-    // タグ名からタグIDに変換（タグ名で検索する場合）
-    // まずはタグ名で直接検索
-    for (let page = 0; page < 3; page++) { // 3ページ分（約150件）
-      const start = page * 50;
-      const url = `https://store.steampowered.com/search/?term=${encodeURIComponent(tags.join(' '))}&start=${start}&count=50`;
+    // 検索キーワードを作成
+    const searchTerm = tags.join(' ');
+    console.log(`[BlueOcean] 検索キーワード: "${searchTerm}"`);
 
-      const response = await axios.get(url, {
-        timeout: 15000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    // Steam Store Search APIを使用
+    // 複数回検索して多くのゲームを取得
+    for (let page = 0; page < 3; page++) {
+      const start = page * 100;
+
+      try {
+        // 方法1: storesearch API（JSONレスポンス）
+        const response = await axios.get(STEAM_SEARCH_API, {
+          params: {
+            term: searchTerm,
+            l: 'japanese',
+            cc: 'JP',
+            start: start,
+            count: 100
+          },
+          timeout: 15000,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+
+        console.log(`[BlueOcean] APIレスポンス: total=${response.data?.total}, items=${response.data?.items?.length}`);
+
+        if (response.data && response.data.items && response.data.items.length > 0) {
+          for (const item of response.data.items) {
+            if (!seenIds.has(item.id)) {
+              seenIds.add(item.id);
+              allGames.push({
+                id: item.id,
+                name: item.name,
+                headerImage: item.tiny_image
+              });
+            }
+          }
+          console.log(`[BlueOcean] ページ${page + 1}: ${response.data.items.length}件取得`);
+
+          // これ以上結果がない場合
+          if (response.data.items.length < 50) break;
+        } else {
+          console.log(`[BlueOcean] ページ${page + 1}: データなし、フォールバック実行`);
+          // フォールバック実行のためにcatchへ
+          throw new Error('Empty response');
         }
-      });
+      } catch (apiError) {
+        console.log(`[BlueOcean] storesearch APIエラー（ページ${page + 1}）: ${apiError.message}`);
 
-      // HTMLからdata-ds-appid属性を抽出
-      const matches = response.data.match(/data-ds-appid="(\d+)"/g) || [];
-      for (const match of matches) {
-        const appId = match.match(/\d+/)[0];
-        appIds.add(appId);
+        // フォールバック: 個別タグでも検索
+        if (page === 0) {
+          for (const tag of tags.slice(0, 2)) { // 最初の2タグで個別検索
+            try {
+              const fallbackResponse = await axios.get(STEAM_SEARCH_API, {
+                params: {
+                  term: tag,
+                  l: 'japanese',
+                  cc: 'JP',
+                  count: 50
+                },
+                timeout: 10000
+              });
+
+              if (fallbackResponse.data && fallbackResponse.data.items) {
+                for (const item of fallbackResponse.data.items) {
+                  if (!seenIds.has(item.id)) {
+                    seenIds.add(item.id);
+                    allGames.push({
+                      id: item.id,
+                      name: item.name,
+                      headerImage: item.tiny_image
+                    });
+                  }
+                }
+                console.log(`[BlueOcean] フォールバック検索 "${tag}": ${fallbackResponse.data.items.length}件`);
+              }
+              await new Promise(resolve => setTimeout(resolve, 300));
+            } catch (fallbackError) {
+              console.log(`[BlueOcean] フォールバック検索失敗: ${fallbackError.message}`);
+            }
+          }
+        }
       }
 
-      // 結果が少なければ終了
-      if (matches.length < 20) break;
-
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    console.log(`[BlueOcean] 検索で ${appIds.size} 件のゲームを発見`);
+    console.log(`[BlueOcean] 検索合計: ${allGames.length}件のゲームを発見`);
 
   } catch (error) {
-    console.error('Steam検索エラー:', error.message);
+    console.error('[BlueOcean] Steam検索エラー:', error.message);
   }
 
-  return Array.from(appIds).map(id => ({ id }));
+  return allGames;
 }
 
 /**
  * ゲームの詳細情報（レビュー数含む）を取得
+ * 複数のAPIソースを使用して確実にレビュー数を取得
  */
 async function getGamesDetails(games) {
   const details = [];
   const batchSize = 5; // 同時リクエスト数
+
+  console.log(`[BlueOcean] 詳細情報取得開始: ${games.length}件`);
 
   for (let i = 0; i < games.length; i += batchSize) {
     const batch = games.slice(i, i + batchSize);
 
     const promises = batch.map(async (game) => {
       try {
-        const response = await axios.get(`${STEAM_API_BASE}/api/appdetails`, {
+        // 方法1: appdetails API（詳細情報）
+        const detailsResponse = await axios.get(`${STEAM_API_BASE}/api/appdetails`, {
           params: { appids: game.id, l: 'japanese' },
           timeout: 10000
         });
 
-        const data = response.data[game.id];
-        if (data && data.success && data.data.type === 'game') {
-          const gameData = data.data;
-          return {
-            id: parseInt(game.id),
-            name: gameData.name,
-            headerImage: gameData.header_image,
-            releaseDate: gameData.release_date?.date,
-            price: gameData.price_overview?.final_formatted || (gameData.is_free ? '無料' : '価格不明'),
-            reviewCount: gameData.recommendations?.total || 0,
-            positiveRate: 0, // 後で計算
-            tags: gameData.genres?.map(g => g.description) || [],
-            developers: gameData.developers || []
-          };
+        const detailsData = detailsResponse.data[game.id];
+        if (!detailsData || !detailsData.success) {
+          return null;
         }
-        return null;
+
+        const gameData = detailsData.data;
+        if (gameData.type !== 'game') {
+          return null;
+        }
+
+        // レビュー数を取得（recommendationsから）
+        let reviewCount = gameData.recommendations?.total || 0;
+        let positiveRate = 0;
+
+        // 方法2: レビュー数が0の場合、別のAPIで取得を試みる
+        if (reviewCount === 0) {
+          try {
+            const reviewResponse = await axios.get(`${STEAM_API_BASE}/appreviews/${game.id}`, {
+              params: { json: 1, language: 'all', purchase_type: 'all', num_per_page: 0 },
+              timeout: 5000
+            });
+
+            if (reviewResponse.data && reviewResponse.data.query_summary) {
+              const summary = reviewResponse.data.query_summary;
+              reviewCount = summary.total_reviews || 0;
+              if (reviewCount > 0) {
+                positiveRate = Math.round((summary.total_positive / reviewCount) * 100);
+              }
+            }
+          } catch (reviewError) {
+            // レビューAPI失敗は無視
+          }
+        }
+
+        return {
+          id: parseInt(game.id),
+          name: gameData.name || game.name,
+          headerImage: gameData.header_image || game.headerImage,
+          releaseDate: gameData.release_date?.date,
+          price: gameData.price_overview?.final_formatted || (gameData.is_free ? '無料' : '価格不明'),
+          reviewCount: reviewCount,
+          positiveRate: positiveRate,
+          tags: gameData.genres?.map(g => g.description) || [],
+          developers: gameData.developers || []
+        };
       } catch (error) {
+        console.log(`[BlueOcean] 詳細取得失敗 (${game.id}): ${error.message}`);
         return null;
       }
     });
 
     const results = await Promise.all(promises);
-    details.push(...results.filter(r => r !== null));
+    const validResults = results.filter(r => r !== null);
+    details.push(...validResults);
+
+    console.log(`[BlueOcean] 詳細取得: ${i + validResults.length}/${games.length}件完了`);
 
     // API制限対策
     if (i + batchSize < games.length) {
@@ -232,6 +333,7 @@ async function getGamesDetails(games) {
     }
   }
 
+  console.log(`[BlueOcean] 詳細取得完了: ${details.length}件`);
   return details;
 }
 
