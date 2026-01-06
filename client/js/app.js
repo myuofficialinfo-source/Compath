@@ -236,10 +236,14 @@ const Lang = {
     });
     // ホームページのUIを更新
     this.updateHomeUI();
-    // Steamlytic iframeに言語変更を通知
+    // Steamlytic iframeに言語変更を通知（iframeをリロードせずに言語だけ変更）
     const steamlyticFrame = document.getElementById('steamlytic-iframe');
     if (steamlyticFrame && steamlyticFrame.contentWindow) {
       steamlyticFrame.contentWindow.postMessage({ type: 'setLanguage', lang }, '*');
+    }
+    // Steamlyticの外側ヘッダーも更新
+    if (AppState.currentPage === 'steamlytic') {
+      Steamlytic.updateHeader();
     }
   },
 
@@ -520,6 +524,8 @@ const UI = {
         const lang = btn.dataset.lang;
         Lang.set(lang);
         // 現在のページを再描画
+        // 注: Steamlyticの場合はLang.set()内でupdateHeader()を呼んでいるため、
+        //     ここでinit()を呼ぶとiframeがリロードされてユーザーの状態が失われる
         if (AppState.currentPage === 'review-insight') {
           ReviewInsight.init();
         } else if (AppState.currentPage === 'store-doctor') {
@@ -530,9 +536,8 @@ const UI = {
           LaunchCommander.init();
         } else if (AppState.currentPage === 'visual-trend') {
           VisualTrend.init();
-        } else if (AppState.currentPage === 'steamlytic') {
-          Steamlytic.init();
         }
+        // steamlyticはLang.set()内でupdateHeader()とpostMessageで処理済み
       });
     });
   }
@@ -4558,6 +4563,58 @@ const Steamlytic = {
 
   openInNewWindow() {
     window.open('/steamlytic_v8.html', '_blank', 'width=1400,height=900');
+  },
+
+  // 言語切り替え時にヘッダーと検索セクションを更新（iframeはリロードしない）
+  updateHeader() {
+    const isJa = Lang.current === 'ja';
+
+    // ヘッダータイトルを更新
+    const toolTitle = document.querySelector('#steamlytic-page .tool-title');
+    if (toolTitle) {
+      toolTitle.textContent = Lang.get('toolSteamlytic');
+    }
+
+    // 戻るボタンのtitleを更新
+    const backButton = document.querySelector('#steamlytic-page .back-button');
+    if (backButton) {
+      backButton.title = isJa ? 'ホームに戻る' : 'Back to Home';
+    }
+
+    // 検索セクションのテキストを更新
+    const searchTitle = document.querySelector('#steamlytic-search-view .search-title');
+    if (searchTitle) {
+      searchTitle.textContent = isJa ? 'Steamゲーム分析' : 'Steam Game Analysis';
+    }
+
+    const searchSubtitle = document.querySelector('#steamlytic-search-view .search-subtitle');
+    if (searchSubtitle) {
+      searchSubtitle.textContent = isJa ? 'SteamストアのURLを入力して、ゲームをプールリストに追加します' : 'Enter a Steam store URL to add the game to your pool list';
+    }
+
+    // 追加ボタンのテキストを更新
+    const addBtn = document.getElementById('steamlytic-add-btn');
+    if (addBtn) {
+      // SVG + テキストなので、テキストノードだけを更新
+      const textNode = Array.from(addBtn.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+      if (textNode) {
+        textNode.textContent = isJa ? '追加' : 'Add';
+      } else {
+        // テキストノードがない場合、SVGの後に追加
+        addBtn.innerHTML = addBtn.innerHTML.replace(/追加|Add/g, '') + (isJa ? '追加' : 'Add');
+      }
+    }
+
+    // 言語ボタンを更新
+    const langSwitcher = document.querySelector('#steamlytic-page .language-switcher');
+    if (langSwitcher) {
+      langSwitcher.innerHTML = `
+        <button class="lang-btn ${isJa ? 'active' : ''}" data-lang="ja">日本語</button>
+        <button class="lang-btn ${!isJa ? 'active' : ''}" data-lang="en">EN</button>
+      `;
+      // 新しいボタンにイベントを再設定
+      UI.bindLanguageSwitcher();
+    }
   }
 };
 
