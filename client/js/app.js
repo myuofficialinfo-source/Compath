@@ -2332,14 +2332,16 @@ const BlueOcean = {
     try {
       UI.showLoading(isJa ? '市場を分析中...' : 'Analyzing market...');
 
-      // タグ名の配列を作成（サーバー側はタグ名で検索）
+      // タグ名とタグIDの配列を作成
       const tagNames = this.selectedTags.map(t => t.name);
+      const tagIds = this.selectedTags.map(t => t.tagid);
 
       const response = await fetch('/api/blue-ocean/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tags: tagNames,
+          tagIds: tagIds,
           freeText
         })
       });
@@ -2357,26 +2359,16 @@ const BlueOcean = {
       document.getElementById('ocean-input-view').classList.add('hidden');
       document.getElementById('ocean-results-view').classList.remove('hidden');
 
-      // 結果を描画（デフォルト値を設定）
+      // サーバーから返されたオーシャンカラーと位置を使用
+      const oceanColor = result.oceanColor || 'yellow';
       const marketPos = result.marketPosition || { x: 50, y: 50 };
+      const totalScore = result.totalScore || 50;
+      const sixAxisScores = result.sixAxisScores || null;
 
-      // マップのx,y座標から直接オーシャンカラーを計算（マップ表示と完全連動）
-      // X軸: 0-50=競合少（左）、50-100=競合多（右）
-      // Y軸: 0-50=需要低（下）、50-100=需要高（上）
-      let oceanColor;
-      if (marketPos.x < 50 && marketPos.y >= 50) {
-        oceanColor = 'blue';    // 左上：競合少・需要高 = ブルーオーシャン
-      } else if (marketPos.x >= 50 && marketPos.y >= 50) {
-        oceanColor = 'red';     // 右上：競合多・需要高 = レッドオーシャン
-      } else if (marketPos.x < 50 && marketPos.y < 50) {
-        oceanColor = 'purple';  // 左下：競合少・需要低 = パープルオーシャン
-      } else {
-        oceanColor = 'yellow';  // 右下：競合多・需要低 = イエローオーシャン
-      }
-
-      this.renderOceanResult(oceanColor);
+      this.renderOceanResult(oceanColor, totalScore, result.oceanExplanation);
       this.renderMarketStats(result.stats);
       this.renderMarketMap(marketPos, oceanColor);
+      this.renderSixAxisScores(sixAxisScores);
       this.renderCompetitors(result.topCompetitors);
       this.renderAIAnalysis(result.aiAnalysis);
       this.renderPivotSuggestions(result.pivotSuggestions);
@@ -2391,31 +2383,85 @@ const BlueOcean = {
     }
   },
 
-  renderOceanResult(oceanColor) {
+  renderOceanResult(oceanColor, totalScore, explanation) {
     const container = document.getElementById('ocean-result');
+    const isJa = Lang.current === 'ja';
 
     const colorConfig = {
-      blue: { emoji: '🌊', label: 'BLUE OCEAN', color: '#2196F3', desc: 'チャンスあり！競合が少なく需要がある市場です。' },
-      red: { emoji: '🔥', label: 'RED OCEAN', color: '#f44336', desc: '危険！競合が多く激戦区です。差別化が必須。' },
-      purple: { emoji: '🔮', label: 'PURPLE OCEAN', color: '#9C27B0', desc: 'ニッチ市場。需要は限定的だが独占の可能性あり。' },
-      yellow: { emoji: '⚡', label: 'YELLOW OCEAN', color: '#FF9800', desc: '要注意。競争は中程度だが成長市場の可能性。' }
+      blue: { emoji: '🌊', label: 'BLUE OCEAN', color: '#2196F3' },
+      red: { emoji: '🔥', label: 'RED OCEAN', color: '#f44336' },
+      purple: { emoji: '🔮', label: 'PURPLE OCEAN', color: '#9C27B0' },
+      yellow: { emoji: '⚡', label: 'YELLOW OCEAN', color: '#FF9800' }
     };
 
     const config = colorConfig[oceanColor] || colorConfig.yellow;
+    const scoreColor = totalScore >= 70 ? '#4CAF50' : totalScore >= 55 ? '#FF9800' : totalScore >= 40 ? '#f44336' : '#9C27B0';
 
     container.innerHTML = `
       <div class="ocean-result">
         <div class="ocean-emoji">${config.emoji}</div>
         <div class="ocean-label ${oceanColor}">${config.label}</div>
-        <p class="ocean-description">${config.desc}</p>
+        <div class="ocean-score" style="color: ${scoreColor}; font-size: 2.5rem; font-weight: bold; margin: 10px 0;">
+          ${totalScore}<span style="font-size: 1rem; color: var(--text-secondary);">/100</span>
+        </div>
+        <p class="ocean-description">${explanation || ''}</p>
         <div class="ocean-recommendation">
-          ${oceanColor === 'blue' ? '👍 このコンセプトで進めましょう！' :
-            oceanColor === 'red' ? '⚠️ ピボットを検討してください' :
-            oceanColor === 'purple' ? '🎯 ターゲットを絞り込んで勝負' :
-            '📊 もう少し調査が必要です'}
+          ${oceanColor === 'blue' ? (isJa ? '👍 このコンセプトで進めましょう！' : '👍 Go ahead with this concept!') :
+            oceanColor === 'red' ? (isJa ? '⚠️ ピボットを検討してください' : '⚠️ Consider pivoting') :
+            oceanColor === 'purple' ? (isJa ? '🎯 ターゲットを絞り込んで勝負' : '🎯 Target a niche audience') :
+            (isJa ? '📊 もう少し調査が必要です' : '📊 More research needed')}
         </div>
       </div>
     `;
+  },
+
+  renderSixAxisScores(scores) {
+    const container = document.getElementById('market-stats');
+    if (!container || !scores) return;
+
+    const isJa = Lang.current === 'ja';
+
+    // 6軸スコアをレーダーチャート風に表示
+    const axisLabels = {
+      competition: { ja: '競争係数', en: 'Competition', weight: '30%' },
+      hitDensity: { ja: 'ヒット密度', en: 'Hit Density', weight: '30%' },
+      revenue: { ja: '収益性', en: 'Revenue', weight: '15%' },
+      niche: { ja: 'ニッチ度', en: 'Niche', weight: '10%' },
+      synergy: { ja: 'タグシナジー', en: 'Tag Synergy', weight: '5%' },
+      demand: { ja: '需要確実性', en: 'Demand', weight: '10%' }
+    };
+
+    const axisCards = Object.entries(scores).map(([key, data]) => {
+      const label = axisLabels[key] || { ja: key, en: key, weight: '?' };
+      const scoreColor = data.score >= 70 ? '#4CAF50' : data.score >= 50 ? '#FF9800' : '#f44336';
+
+      return `
+        <div class="axis-score-card">
+          <div class="axis-score-header">
+            <span class="axis-label">${isJa ? label.ja : label.en}</span>
+            <span class="axis-weight">(${label.weight})</span>
+          </div>
+          <div class="axis-score-value" style="color: ${scoreColor};">${data.score}</div>
+          <div class="axis-score-bar">
+            <div class="axis-score-fill" style="width: ${data.score}%; background: ${scoreColor};"></div>
+          </div>
+          <div class="axis-description">${data.description || ''}</div>
+        </div>
+      `;
+    }).join('');
+
+    // 既存のmarket-statsの後に6軸スコアを追加
+    const sixAxisHTML = `
+      <div class="six-axis-scores">
+        <h3 class="six-axis-title">${isJa ? '📊 6軸スコア分析' : '📊 6-Axis Score Analysis'}</h3>
+        <div class="axis-scores-grid">
+          ${axisCards}
+        </div>
+      </div>
+    `;
+
+    // market-statsの後に追加
+    container.insertAdjacentHTML('afterend', sixAxisHTML);
   },
 
   renderMarketStats(stats) {
@@ -2424,24 +2470,24 @@ const BlueOcean = {
 
     // statsがundefinedの場合のデフォルト値
     const safeStats = stats || {};
-    const competitorCount = safeStats.competitorCount ?? 0;
+    const totalGames = safeStats.totalGames ?? 0;
+    const hitGames = safeStats.hitGames ?? 0;
     const avgReviews = safeStats.avgReviews ?? 0;
-    const avgRating = safeStats.avgRating ?? 0;
     const demandLevel = safeStats.demandLevel ?? (isJa ? '不明' : 'Unknown');
 
     container.innerHTML = `
       <div class="market-stats">
         <div class="stat-card">
-          <div class="stat-card-value">${competitorCount}</div>
-          <div class="stat-card-label">${isJa ? '競合ゲーム数' : 'Competitors'}</div>
+          <div class="stat-card-value">${totalGames.toLocaleString()}</div>
+          <div class="stat-card-label">${isJa ? '市場規模（タイトル数）' : 'Market Size'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-value">${hitGames}</div>
+          <div class="stat-card-label">${isJa ? 'ヒット作（1000+レビュー）' : 'Hit Games (1000+ Reviews)'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-value">${avgReviews.toLocaleString()}</div>
           <div class="stat-card-label">${isJa ? '平均レビュー数' : 'Avg Reviews'}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-value">${avgRating}%</div>
-          <div class="stat-card-label">${isJa ? '平均好評率' : 'Avg Rating'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-value">${demandLevel}</div>

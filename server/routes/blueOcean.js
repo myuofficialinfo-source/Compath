@@ -13,16 +13,17 @@ const blueOceanService = require('../services/blueOceanService');
  */
 router.post('/analyze', async (req, res) => {
   try {
-    const { tags, freeText } = req.body;
+    const { tags, tagIds, freeText } = req.body;
 
     if (!tags || tags.length === 0) {
       return res.status(400).json({ error: 'タグを1つ以上選択してください' });
     }
 
-    console.log(`市場分析開始: tags=[${tags.join(', ')}]`);
+    console.log(`市場分析開始: tags=[${tags.join(', ')}], tagIds=[${(tagIds || []).join(', ')}]`);
 
     const result = await blueOceanService.analyzeMarket({
       tags: tags,
+      tagIds: tagIds || [],
       freeText: freeText || ''
     });
 

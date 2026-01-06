@@ -8,6 +8,10 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const STEAM_SEARCH_API = 'https://store.steampowered.com/api/storesearch';
 const STEAM_API_BASE = 'https://store.steampowered.com';
+const STEAM_SEARCH_HTML = 'https://store.steampowered.com/search/';
+
+// タグ名→タグIDマッピング（キャッシュ）
+let tagNameToIdCache = {};
 
 // Geminiクライアント
 let geminiModel = null;
@@ -53,43 +57,55 @@ const POPULAR_TAGS = {
 };
 
 /**
- * 市場分析を実行（売上データベースのブルーオーシャン判定）
+ * 市場分析を実行（6軸スコアリングによるブルーオーシャン判定）
  * @param {Object} concept - ユーザーのゲームコンセプト
  * @returns {Promise<Object>} 分析結果
  */
 async function analyzeMarket(concept) {
-  const { tags = [], freeText = '' } = concept;
+  const { tags = [], tagIds = [], freeText = '' } = concept;
 
   try {
     const searchTags = tags.filter(Boolean);
-    console.log(`[BlueOcean] 分析開始: tags=${searchTags.join(', ')}`);
+    const searchTagIds = tagIds.filter(Boolean);
+    console.log(`[BlueOcean] 分析開始: tags=${searchTags.join(', ')}, tagIds=${searchTagIds.join(', ')}`);
 
-    // 1. Steamでタグに該当するゲームを大量取得（100件以上目標）
-    const allGames = await searchGamesByTags(searchTags);
+    // 1. タグIDを使って正確なタイトル数を取得
+    const tagStats = await getTagTitleCounts(searchTagIds, searchTags);
+    console.log(`[BlueOcean] タグ統計:`, tagStats);
+
+    // 2. Steamでタグに該当するゲームを取得（サンプル）
+    const allGames = await searchGamesByTagIds(searchTagIds);
     console.log(`[BlueOcean] 取得ゲーム数: ${allGames.length}`);
 
-    // 2. 各ゲームの詳細（レビュー数＝売上指標）を取得
-    const gamesWithDetails = await getGamesDetails(allGames.slice(0, 50)); // 最大50件の詳細取得
+    // 3. 各ゲームの詳細（レビュー数＝売上指標）を取得
+    const gamesWithDetails = await getGamesDetails(allGames.slice(0, 50));
     console.log(`[BlueOcean] 詳細取得: ${gamesWithDetails.length}件`);
 
-    // 3. 売上で分類
+    // 4. 売上で分類
     const salesAnalysis = analyzeGamesBySales(gamesWithDetails);
     console.log(`[BlueOcean] 売上分析:`, salesAnalysis.summary);
 
-    // 4. ブルーオーシャン判定
-    const oceanResult = determineOceanColorBySales(salesAnalysis);
-    console.log(`[BlueOcean] 判定: ${oceanResult.color}`);
+    // 5. 6軸スコアリング計算
+    const sixAxisScores = calculateSixAxisScores(tagStats, salesAnalysis);
+    console.log(`[BlueOcean] 6軸スコア:`, sixAxisScores);
 
-    // 5. AIでアイデアと照らし合わせて差別化ポイントを提案
+    // 6. 総合スコアとブルーオーシャン判定
+    const totalScore = calculateTotalScore(sixAxisScores);
+    const oceanResult = determineOceanByScore(totalScore, sixAxisScores);
+    console.log(`[BlueOcean] 総合スコア: ${totalScore}点, 判定: ${oceanResult.color}`);
+
+    // 7. AIでアイデアと照らし合わせて差別化ポイントを提案
     const aiAnalysis = await generateMarketAnalysisWithSalesData({
       searchTags,
       salesAnalysis,
       topGames: salesAnalysis.hitGames.slice(0, 5),
-      freeText
+      freeText,
+      sixAxisScores,
+      totalScore
     });
 
-    // 6. ピボット提案
-    const pivotSuggestions = await generatePivotSuggestions(searchTags, allGames.length, freeText);
+    // 8. ピボット提案
+    const pivotSuggestions = await generatePivotSuggestions(searchTags, tagStats.combinedCount, freeText);
 
     return {
       concept: {
@@ -97,15 +113,18 @@ async function analyzeMarket(concept) {
         freeText
       },
       oceanColor: oceanResult.color,
+      totalScore,
+      sixAxisScores,
       stats: {
-        totalGames: allGames.length,
+        totalGames: tagStats.combinedCount,
         analyzedGames: gamesWithDetails.length,
         hitGames: salesAnalysis.hitGames.length,
         mediumGames: salesAnalysis.mediumGames.length,
         lowGames: salesAnalysis.lowGames.length,
         avgReviews: salesAnalysis.summary.avgReviews,
         maxReviews: salesAnalysis.summary.maxReviews,
-        demandLevel: salesAnalysis.summary.demandLevel
+        demandLevel: salesAnalysis.summary.demandLevel,
+        tagStats
       },
       topCompetitors: salesAnalysis.hitGames.slice(0, 10).map(g => ({
         id: g.id,
@@ -143,110 +162,346 @@ async function analyzeMarket(concept) {
 }
 
 /**
- * Steam Store Search APIを使ってタグに該当するゲームを検索
- * HTMLスクレイピングの代わりにAPIエンドポイントを使用
+ * タグIDからSteamのタイトル数を取得
+ * Steam検索HTMLから "showing X - Y of Z" をパース
  */
-async function searchGamesByTags(tags) {
+async function getTagTitleCounts(tagIds, tagNames) {
+  const result = {
+    individualCounts: {},
+    combinedCount: 0
+  };
+
+  try {
+    // 複合タグの検索（タグIDをカンマ区切り）
+    if (tagIds.length > 0) {
+      const combinedTagParam = tagIds.join(',');
+      const combinedCount = await fetchTagCount(combinedTagParam);
+      result.combinedCount = combinedCount;
+      console.log(`[BlueOcean] 複合タグ(${tagIds.join('+')})のタイトル数: ${combinedCount}`);
+    }
+
+    // 個別タグのカウント（最初の3つまで）
+    for (let i = 0; i < Math.min(tagIds.length, 3); i++) {
+      const tagId = tagIds[i];
+      const tagName = tagNames[i] || `Tag${tagId}`;
+      const count = await fetchTagCount(tagId.toString());
+      result.individualCounts[tagName] = count;
+      console.log(`[BlueOcean] ${tagName}(${tagId})のタイトル数: ${count}`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+  } catch (error) {
+    console.error('[BlueOcean] タイトル数取得エラー:', error.message);
+  }
+
+  return result;
+}
+
+/**
+ * Steam検索HTMLからタグのタイトル数を取得
+ */
+async function fetchTagCount(tagParam) {
+  try {
+    const response = await axios.get(STEAM_SEARCH_HTML, {
+      params: {
+        tags: tagParam,
+        category1: 998 // ゲームのみ
+      },
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    // "showing 1 - 50 of 12345" からタイトル数を抽出
+    const match = response.data.match(/showing\s+\d+\s*-\s*\d+\s+of\s+([\d,]+)/i);
+    if (match) {
+      return parseInt(match[1].replace(/,/g, ''), 10);
+    }
+
+    // 結果がない場合
+    if (response.data.includes('No results')) {
+      return 0;
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`[BlueOcean] fetchTagCount エラー (${tagParam}):`, error.message);
+    return 0;
+  }
+}
+
+/**
+ * タグIDを使ってSteam検索からゲームを取得
+ */
+async function searchGamesByTagIds(tagIds) {
   const allGames = [];
   const seenIds = new Set();
 
+  if (tagIds.length === 0) {
+    return allGames;
+  }
+
   try {
-    // 検索キーワードを作成
-    const searchTerm = tags.join(' ');
-    console.log(`[BlueOcean] 検索キーワード: "${searchTerm}"`);
+    const tagParam = tagIds.join(',');
 
-    // Steam Store Search APIを使用
-    // 複数回検索して多くのゲームを取得
+    // Steam検索HTMLからゲームIDを抽出（最大3ページ）
     for (let page = 0; page < 3; page++) {
-      const start = page * 100;
+      const start = page * 50;
 
-      try {
-        // 方法1: storesearch API（JSONレスポンス）
-        const response = await axios.get(STEAM_SEARCH_API, {
-          params: {
-            term: searchTerm,
-            l: 'japanese',
-            cc: 'JP',
-            start: start,
-            count: 100
-          },
-          timeout: 15000,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        });
-
-        console.log(`[BlueOcean] APIレスポンス: total=${response.data?.total}, items=${response.data?.items?.length}`);
-
-        if (response.data && response.data.items && response.data.items.length > 0) {
-          for (const item of response.data.items) {
-            if (!seenIds.has(item.id)) {
-              seenIds.add(item.id);
-              allGames.push({
-                id: item.id,
-                name: item.name,
-                headerImage: item.tiny_image
-              });
-            }
-          }
-          console.log(`[BlueOcean] ページ${page + 1}: ${response.data.items.length}件取得`);
-
-          // これ以上結果がない場合
-          if (response.data.items.length < 50) break;
-        } else {
-          console.log(`[BlueOcean] ページ${page + 1}: データなし、フォールバック実行`);
-          // フォールバック実行のためにcatchへ
-          throw new Error('Empty response');
+      const response = await axios.get(STEAM_SEARCH_HTML, {
+        params: {
+          tags: tagParam,
+          category1: 998,
+          start: start,
+          count: 50
+        },
+        timeout: 15000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-      } catch (apiError) {
-        console.log(`[BlueOcean] storesearch APIエラー（ページ${page + 1}）: ${apiError.message}`);
+      });
 
-        // フォールバック: 個別タグでも検索
-        if (page === 0) {
-          for (const tag of tags.slice(0, 2)) { // 最初の2タグで個別検索
-            try {
-              const fallbackResponse = await axios.get(STEAM_SEARCH_API, {
-                params: {
-                  term: tag,
-                  l: 'japanese',
-                  cc: 'JP',
-                  count: 50
-                },
-                timeout: 10000
-              });
+      // data-ds-appid="12345" からAppIDを抽出
+      const matches = response.data.match(/data-ds-appid="(\d+)"/g) || [];
+      let newCount = 0;
 
-              if (fallbackResponse.data && fallbackResponse.data.items) {
-                for (const item of fallbackResponse.data.items) {
-                  if (!seenIds.has(item.id)) {
-                    seenIds.add(item.id);
-                    allGames.push({
-                      id: item.id,
-                      name: item.name,
-                      headerImage: item.tiny_image
-                    });
-                  }
-                }
-                console.log(`[BlueOcean] フォールバック検索 "${tag}": ${fallbackResponse.data.items.length}件`);
-              }
-              await new Promise(resolve => setTimeout(resolve, 300));
-            } catch (fallbackError) {
-              console.log(`[BlueOcean] フォールバック検索失敗: ${fallbackError.message}`);
-            }
-          }
+      for (const match of matches) {
+        const appId = match.match(/\d+/)[0];
+        if (!seenIds.has(appId)) {
+          seenIds.add(appId);
+          allGames.push({ id: appId });
+          newCount++;
         }
       }
 
+      console.log(`[BlueOcean] ページ${page + 1}: ${newCount}件取得`);
+
+      if (matches.length < 25) break;
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    console.log(`[BlueOcean] 検索合計: ${allGames.length}件のゲームを発見`);
+    console.log(`[BlueOcean] タグID検索合計: ${allGames.length}件`);
 
   } catch (error) {
-    console.error('[BlueOcean] Steam検索エラー:', error.message);
+    console.error('[BlueOcean] タグID検索エラー:', error.message);
   }
 
   return allGames;
+}
+
+/**
+ * 6軸スコアリング計算
+ */
+function calculateSixAxisScores(tagStats, salesAnalysis) {
+  const { combinedCount, individualCounts } = tagStats;
+  const { hitGames, mediumGames, allGames, summary } = salesAnalysis;
+
+  // === 1. 競争係数（タイトル数÷平均レビュー数）===
+  // 低いほど良い（1レビューを生み出すのに必要な競合が少ない）
+  const competitionCoef = summary.avgReviews > 0
+    ? combinedCount / summary.avgReviews
+    : combinedCount; // レビューがなければタイトル数そのまま
+
+  let competitionScore;
+  if (competitionCoef < 1) {
+    competitionScore = 100; // 超優秀
+  } else if (competitionCoef < 3) {
+    competitionScore = 80;
+  } else if (competitionCoef < 5) {
+    competitionScore = 60;
+  } else if (competitionCoef < 10) {
+    competitionScore = 40;
+  } else {
+    competitionScore = 20; // 競争激しい
+  }
+
+  // === 2. ヒット密度（Hit Density）===
+  // (1000レビュー超タイトル数 ÷ サンプル中の全タイトル数) × 100
+  const hitDensity = allGames.length > 0
+    ? (hitGames.length / allGames.length) * 100
+    : 0;
+
+  let hitDensityScore;
+  if (hitDensity >= 10) {
+    hitDensityScore = 100; // 1/10がヒット
+  } else if (hitDensity >= 5) {
+    hitDensityScore = 80; // 1/20がヒット
+  } else if (hitDensity >= 2) {
+    hitDensityScore = 60;
+  } else if (hitDensity >= 1) {
+    hitDensityScore = 40;
+  } else {
+    hitDensityScore = 20; // ヒットがほぼない
+  }
+
+  // === 3. 収益性（Revenue per Title）===
+  // 平均レビュー数ベース
+  let revenueScore;
+  if (summary.avgReviews >= 1000) {
+    revenueScore = 100;
+  } else if (summary.avgReviews >= 500) {
+    revenueScore = 80;
+  } else if (summary.avgReviews >= 200) {
+    revenueScore = 60;
+  } else if (summary.avgReviews >= 100) {
+    revenueScore = 40;
+  } else {
+    revenueScore = 20;
+  }
+
+  // === 4. ニッチ度スコア（Niche Score）===
+  // タイトル数が少ないほど高スコア
+  let nicheScore;
+  if (combinedCount < 100) {
+    nicheScore = 100; // 超ニッチ
+  } else if (combinedCount < 500) {
+    nicheScore = 80;
+  } else if (combinedCount < 2000) {
+    nicheScore = 60;
+  } else if (combinedCount < 5000) {
+    nicheScore = 40;
+  } else {
+    nicheScore = 20; // 超メジャー
+  }
+
+  // === 5. タグシナジースコア（複数タグの組み合わせ効果）===
+  // 個別タグの合計に対する複合タグの縮小率
+  const individualSum = Object.values(individualCounts).reduce((a, b) => a + b, 0);
+  let synergyScore = 50; // デフォルト
+
+  if (individualSum > 0 && combinedCount > 0) {
+    const synergyRatio = combinedCount / individualSum;
+    // 比率が小さいほど絞り込みが効いている
+    if (synergyRatio < 0.05) {
+      synergyScore = 100; // 非常に効果的な組み合わせ
+    } else if (synergyRatio < 0.1) {
+      synergyScore = 80;
+    } else if (synergyRatio < 0.2) {
+      synergyScore = 60;
+    } else if (synergyRatio < 0.4) {
+      synergyScore = 40;
+    } else {
+      synergyScore = 20; // 組み合わせ効果薄い
+    }
+  }
+
+  // === 6. 需要確実性スコア（ヒット作の存在）===
+  let demandScore;
+  if (hitGames.length >= 5) {
+    demandScore = 100; // 需要確実
+  } else if (hitGames.length >= 3) {
+    demandScore = 80;
+  } else if (hitGames.length >= 1) {
+    demandScore = 60;
+  } else if (mediumGames.length >= 5) {
+    demandScore = 40;
+  } else {
+    demandScore = 20; // 需要不明
+  }
+
+  return {
+    competition: {
+      score: competitionScore,
+      value: Math.round(competitionCoef * 100) / 100,
+      label: '競争係数',
+      description: competitionCoef < 1 ? '超優秀' : competitionCoef < 5 ? '良好' : '激戦'
+    },
+    hitDensity: {
+      score: hitDensityScore,
+      value: Math.round(hitDensity * 10) / 10,
+      label: 'ヒット密度',
+      description: `${hitGames.length}/${allGames.length}本がヒット`
+    },
+    revenue: {
+      score: revenueScore,
+      value: summary.avgReviews,
+      label: '収益性',
+      description: `平均${summary.avgReviews}レビュー`
+    },
+    niche: {
+      score: nicheScore,
+      value: combinedCount,
+      label: 'ニッチ度',
+      description: `${combinedCount.toLocaleString()}本`
+    },
+    synergy: {
+      score: synergyScore,
+      value: individualSum > 0 ? Math.round((combinedCount / individualSum) * 100) : 0,
+      label: 'タグシナジー',
+      description: individualSum > 0 ? `${Math.round((combinedCount / individualSum) * 100)}%に絞り込み` : '-'
+    },
+    demand: {
+      score: demandScore,
+      value: hitGames.length,
+      label: '需要確実性',
+      description: hitGames.length > 0 ? `${hitGames.length}本のヒット作あり` : 'ヒット作なし'
+    }
+  };
+}
+
+/**
+ * 総合スコア計算（重み付け）
+ * 競争係数(30%) + ヒット密度(30%) + 収益性(15%) + ニッチ度(10%) + シナジー(5%) + 需要確実性(10%)
+ */
+function calculateTotalScore(scores) {
+  // 基準点50からの加減算
+  const total = 50 + (
+    (scores.competition.score - 50) * 0.30 +
+    (scores.hitDensity.score - 50) * 0.30 +
+    (scores.revenue.score - 50) * 0.15 +
+    (scores.niche.score - 50) * 0.10 +
+    (scores.synergy.score - 50) * 0.05 +
+    (scores.demand.score - 50) * 0.10
+  );
+
+  return Math.round(Math.max(0, Math.min(100, total)));
+}
+
+/**
+ * 総合スコアに基づくブルーオーシャン判定
+ */
+function determineOceanByScore(totalScore, scores) {
+  let result;
+
+  // 黄金ゾーン: 競争係数1未満 かつ ヒット密度5%以上
+  const isGoldenZone = scores.competition.value < 1 && scores.hitDensity.value >= 5;
+
+  if (totalScore >= 85 || isGoldenZone) {
+    result = {
+      color: 'blue',
+      position: { x: 20, y: 80 },
+      explanation: isGoldenZone
+        ? `🔥 黄金ゾーン発見！競争係数${scores.competition.value}（1未満）かつヒット密度${scores.hitDensity.value}%（5%以上）。即開発推奨！`
+        : `総合スコア${totalScore}点。需要が確認でき、競合も適度。狙い目の市場です！`
+    };
+  } else if (totalScore >= 70) {
+    result = {
+      color: 'blue',
+      position: { x: 35, y: 70 },
+      explanation: `総合スコア${totalScore}点。有望な市場です。差別化ポイントを明確にして参入を検討。`
+    };
+  } else if (totalScore >= 55) {
+    result = {
+      color: 'yellow',
+      position: { x: 50, y: 50 },
+      explanation: `総合スコア${totalScore}点。競争が激しいか、需要が不明確。タグの組み合わせを再検討推奨。`
+    };
+  } else if (totalScore >= 40) {
+    result = {
+      color: 'red',
+      position: { x: 70, y: 40 },
+      explanation: `総合スコア${totalScore}点。レッドオーシャンの可能性。強力な差別化なしでは厳しい市場。`
+    };
+  } else {
+    result = {
+      color: 'purple',
+      position: { x: 30, y: 25 },
+      explanation: `総合スコア${totalScore}点。需要が見えない市場。ニッチすぎるか、市場自体が存在しない可能性。`
+    };
+  }
+
+  return result;
 }
 
 /**
@@ -384,81 +639,6 @@ function analyzeGamesBySales(games) {
       demandLevel
     }
   };
-}
-
-/**
- * 売上データに基づくブルーオーシャン判定
- *
- * ブルーオーシャン = 売れてるゲームがある（需要あり）+ 競合が少ない
- * レッドオーシャン = 売れてるゲームがある + 競合が多い
- * パープル = 売れてるゲームが少ない + 競合も少ない（ニッチ）
- * イエロー = 売れてるゲームが少ない + 競合は多い（危険）
- */
-function determineOceanColorBySales(salesAnalysis) {
-  const { hitGames, mediumGames, allGames, summary } = salesAnalysis;
-
-  // 需要の判定（ヒット作があるか）
-  const hasProvenDemand = hitGames.length >= 3 || (hitGames.length >= 1 && summary.maxReviews >= 10000);
-  const hasSomeDemand = hitGames.length >= 1 || mediumGames.length >= 5;
-
-  // 競合の判定
-  const totalCompetitors = allGames.length;
-  const isLowCompetition = totalCompetitors < 30;
-  const isMediumCompetition = totalCompetitors >= 30 && totalCompetitors < 80;
-  const isHighCompetition = totalCompetitors >= 80;
-
-  let result;
-
-  // ブルーオーシャン：需要が証明されている + 競合が少ない
-  if (hasProvenDemand && isLowCompetition) {
-    result = {
-      color: 'blue',
-      position: { x: 25, y: 75 },
-      explanation: `売れてるゲームが${hitGames.length}本ありながら、競合は${totalCompetitors}本と少ない。狙い目の市場です！`
-    };
-  }
-  // ブルーオーシャン（弱）：ある程度の需要 + 競合がかなり少ない
-  else if (hasSomeDemand && totalCompetitors < 20) {
-    result = {
-      color: 'blue',
-      position: { x: 20, y: 60 },
-      explanation: `競合が${totalCompetitors}本と非常に少なく、需要の兆しもあります。先行者利益を狙えます。`
-    };
-  }
-  // レッドオーシャン：需要あり + 競合多い
-  else if (hasProvenDemand && isHighCompetition) {
-    result = {
-      color: 'red',
-      position: { x: 80, y: 75 },
-      explanation: `${hitGames.length}本のヒット作がある人気ジャンルですが、${totalCompetitors}本以上の競合がいる激戦区です。差別化必須。`
-    };
-  }
-  // レッドオーシャン（やや）：需要あり + 競合中程度
-  else if (hasProvenDemand && isMediumCompetition) {
-    result = {
-      color: 'red',
-      position: { x: 60, y: 70 },
-      explanation: `需要は確認できますが、${totalCompetitors}本の競合がいます。強力な差別化が必要です。`
-    };
-  }
-  // パープル：需要が少ない + 競合も少ない（ニッチ）
-  else if (!hasSomeDemand && isLowCompetition) {
-    result = {
-      color: 'purple',
-      position: { x: 25, y: 30 },
-      explanation: `競合は${totalCompetitors}本と少ないですが、ヒット作も見当たりません。ニッチなファン向けか、新市場開拓の可能性があります。`
-    };
-  }
-  // イエロー：需要少ない + 競合多い（危険）
-  else {
-    result = {
-      color: 'yellow',
-      position: { x: 70, y: 30 },
-      explanation: `${totalCompetitors}本の競合がいるのにヒット作が少ない。需要に対して供給過多の可能性があります。ピボットを検討してください。`
-    };
-  }
-
-  return result;
 }
 
 /**
