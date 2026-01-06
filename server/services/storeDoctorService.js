@@ -792,49 +792,61 @@ function analyzeDescriptionQualityAdditive(descJp, descEn, lang = 'ja') {
   }
 
   // === 2. 構造・フォーマットの分析 ===
-  // 見出しタグの使用（最大8点）
-  const hasH1 = /<h1/i.test(descJp) || /<h1/i.test(descEn);
-  const hasH2 = /<h2/i.test(descJp) || /<h2/i.test(descEn);
-  const hasBold = /<b>|<strong>/i.test(descJp) || /<b>|<strong>/i.test(descEn);
-  const hasHeadings = hasH1 || hasH2 || hasBold;
+  // 見出しタグの使用（最大8点）- 厳格化: h1/h2タグのみ、boldは除外
+  const hasH1 = /<h1[^>]*>/i.test(descJp) || /<h1[^>]*>/i.test(descEn);
+  const hasH2 = /<h2[^>]*>/i.test(descJp) || /<h2[^>]*>/i.test(descEn);
+  // Steamの説明文では[h1][/h1]形式も使われる
+  const hasSteamH1 = /\[h1\]/i.test(descJp) || /\[h1\]/i.test(descEn);
+  const hasSteamH2 = /\[h2\]/i.test(descJp) || /\[h2\]/i.test(descEn);
+  const hasHeadings = hasH1 || hasH2 || hasSteamH1 || hasSteamH2;
 
   details.hasHeadings = hasHeadings;
-  details.headingCount = ((descJp + descEn).match(/<h[12]|<b>|<strong>/gi) || []).length;
+  details.headingCount = ((descJp + descEn).match(/<h[12][^>]*>|\[h[12]\]/gi) || []).length;
 
-  if (!hasHeadings && plainText.length > 300) {
+  if (!hasHeadings) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'descWarningNoHeadings'),
       suggestion: getMsg(lang, 'descSuggestionNoHeadings')
     });
     // 0点
-  } else if (hasHeadings) {
+  } else if (details.headingCount >= 3) {
     passed.push(getMsg(lang, 'descPassedHeadings'));
-    bonus += 8;
+    bonus += 8; // 複数の見出しで満点
+  } else {
+    passed.push(getMsg(lang, 'descPassedHeadings'));
+    bonus += 4; // 見出しがあるが少ない
   }
 
-  // リスト形式の使用（最大5点）
-  const hasList = /<ul|<ol|<li|・|●|★|◆|■|▶|→/i.test(descJp);
-  details.hasList = hasList;
+  // リスト形式の使用（最大5点）- 厳格化: HTMLリストタグ or 連続した箇条書き記号
+  const hasHtmlList = /<ul[^>]*>|<ol[^>]*>|<li[^>]*>/i.test(descJp);
+  const hasSteamList = /\[list\]|\[\*\]/i.test(descJp);
+  // 箇条書き記号が3回以上連続で使われているかチェック（行頭に）
+  const bulletPointMatches = (descJp.match(/(<br[^>]*>|^)\s*[・●★◆■▶►◇○]\s*[^\s<]/gim) || []).length;
+  const hasBulletPoints = bulletPointMatches >= 3;
+  const hasList = hasHtmlList || hasSteamList || hasBulletPoints;
 
-  if (!hasList && plainText.length > 500) {
+  details.hasList = hasList;
+  details.bulletPointCount = bulletPointMatches;
+
+  if (!hasList) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'descWarningNoList'),
       suggestion: getMsg(lang, 'descSuggestionNoList')
     });
     // 0点
-  } else if (hasList) {
+  } else {
     passed.push(getMsg(lang, 'descPassedList'));
     bonus += 5;
   }
 
-  // === 3. 改行・段落の分析（最大7点） ===
-  const brCount = (descJp.match(/<br/gi) || []).length;
+  // === 3. 改行・段落の分析（最大7点）- 厳格化 ===
+  const brCount = (descJp.match(/<br[^>]*>/gi) || []).length;
   const pCount = (descJp.match(/<\/p>/gi) || []).length;
   const paragraphBreaks = brCount + pCount;
 
-  // 1000文字あたりの改行数
+  // 1000文字あたりの改行数を計算
   const breaksPerThousand = plainText.length > 0
     ? Math.round((paragraphBreaks / plainText.length) * 1000)
     : 0;
@@ -842,32 +854,36 @@ function analyzeDescriptionQualityAdditive(descJp, descEn, lang = 'ja') {
   details.paragraphBreaks = paragraphBreaks;
   details.breaksPerThousand = breaksPerThousand;
 
-  if (plainText.length > 500 && breaksPerThousand < 5) {
+  // 十分な改行があるかチェック（500文字以上のテキストでは10個以上の改行を期待）
+  const hasEnoughBreaks = paragraphBreaks >= 10 && breaksPerThousand >= 10;
+  const hasSomeBreaks = paragraphBreaks >= 5 && breaksPerThousand >= 5;
+
+  if (!hasSomeBreaks && plainText.length > 200) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'descWarningNoBreaks'),
       suggestion: getMsg(lang, 'descSuggestionNoBreaks')
     });
     // 0点
-  } else if (paragraphBreaks > 0) {
+  } else if (hasEnoughBreaks) {
     passed.push(getMsg(lang, 'descPassedBreaks'));
-    bonus += 7;
+    bonus += 7; // 十分な改行で満点
+  } else if (hasSomeBreaks) {
+    passed.push(getMsg(lang, 'descPassedBreaks'));
+    bonus += 3; // 改行はあるが少なめ
   }
 
-  // === 4. ゲーム内容の明確さ分析（最大10点） ===
+  // === 4. ゲーム内容の明確さ分析（最大10点）- 厳格化 ===
+  // 単にキーワードがあるだけでなく、説明として使われているか
   const gameplayKeywords = [
-    // ジャンル系
-    'アクション', 'RPG', 'シミュレーション', 'パズル', 'アドベンチャー', 'ストラテジー',
-    'ローグライク', 'ローグライト', 'サバイバル', 'ホラー', 'シューター', 'プラットフォーム',
-    'Action', 'Puzzle', 'Adventure', 'Strategy', 'Survival', 'Horror', 'Shooter',
-    // システム系
-    '戦闘', 'バトル', '探索', '育成', 'クラフト', '建築', '経営', '管理',
-    'レベルアップ', 'スキル', 'アイテム', '装備', '合成', 'ダンジョン',
-    'combat', 'battle', 'explore', 'craft', 'build', 'manage', 'skill', 'level',
-    // 遊び方系
-    'プレイヤー', 'キャラクター', '操作', 'ターン制', 'リアルタイム',
-    'ソロ', 'マルチ', '協力', '対戦', 'オンライン', 'オフライン',
-    'player', 'character', 'turn-based', 'real-time', 'solo', 'coop', 'multiplayer'
+    // ジャンル系（より具体的なものに絞る）
+    'ローグライク', 'ローグライト', 'メトロイドヴァニア', 'ソウルライク', 'ハクスラ',
+    'ターン制', 'リアルタイム', 'タワーディフェンス', 'シューティング', 'ビジュアルノベル',
+    'Roguelike', 'Roguelite', 'Metroidvania', 'Souls-like', 'Turn-Based',
+    // システム系（具体的な遊び方を示すもの）
+    'レベルアップ', 'スキルツリー', 'クラフト', '建築', '探索', 'ダンジョン',
+    '装備', 'カスタマイズ', 'マルチプレイ', '協力プレイ', 'PvP',
+    'level up', 'skill tree', 'crafting', 'building', 'dungeon', 'equipment'
   ];
 
   const combinedText = (plainText + ' ' + plainTextEn).toLowerCase();
@@ -875,20 +891,23 @@ function analyzeDescriptionQualityAdditive(descJp, descEn, lang = 'ja') {
     combinedText.includes(kw.toLowerCase())
   );
 
-  details.gameplayKeywordsFound = foundKeywords.length;
-  details.foundKeywords = foundKeywords.slice(0, 10);
+  // 重複を除去
+  const uniqueKeywords = [...new Set(foundKeywords)];
+  details.gameplayKeywordsFound = uniqueKeywords.length;
+  details.foundKeywords = uniqueKeywords.slice(0, 10);
 
-  if (foundKeywords.length < 3 && plainText.length > 200) {
+  // より厳しく: 5個以上で満点、3-4個で半分、それ以下は0
+  if (uniqueKeywords.length < 3) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'descWarningNoGameplay'),
       suggestion: getMsg(lang, 'descSuggestionNoGameplay')
     });
     // 0点
-  } else if (foundKeywords.length >= 5) {
+  } else if (uniqueKeywords.length >= 5) {
     passed.push(getMsg(lang, 'descPassedGameplayDetailed'));
     bonus += 10;
-  } else if (foundKeywords.length >= 3) {
+  } else {
     passed.push(getMsg(lang, 'descPassedGameplayBasic'));
     bonus += 5;
   }
