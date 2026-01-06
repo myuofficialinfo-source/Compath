@@ -352,12 +352,13 @@ async function diagnoseStore(appId, options = {}) {
     const textDiagnosis = diagnoseText(gameData, lang);
     const basicDiagnosis = diagnoseBasicInfo(gameData, lang);
 
-    // 総合スコア計算（テキスト診断の比重を上げた）
+    // 総合スコア計算（テキスト診断の比重を上げ、基本情報の比重を下げた）
+    // タグ: 30%, ビジュアル: 25%, テキスト: 40%, 基本情報: 5%
     const totalScore = Math.round(
       tagDiagnosis.score * 0.30 +
       visualDiagnosis.score * 0.25 +
-      textDiagnosis.score * 0.35 +
-      basicDiagnosis.score * 0.10
+      textDiagnosis.score * 0.40 +
+      basicDiagnosis.score * 0.05
     );
 
     // 判定ランク
@@ -558,7 +559,7 @@ function diagnoseVisuals(gameData, lang = 'ja') {
 }
 
 /**
- * テキスト診断
+ * テキスト診断（厳格版）
  */
 function diagnoseText(gameData, lang = 'ja') {
   const issues = [];
@@ -574,14 +575,21 @@ function diagnoseText(gameData, lang = 'ja') {
       message: getMsg(lang, 'textCriticalNoShortDesc'),
       suggestion: getMsg(lang, 'textSuggestionNoShortDesc')
     });
-    score -= 40;
+    score -= 50; // より厳しく
+  } else if (shortDesc.length < 50) {
+    issues.push({
+      type: 'critical',
+      message: getMsg(lang, 'textWarningShortDescTooShort', shortDesc.length),
+      suggestion: getMsg(lang, 'textSuggestionShortDescTooShort')
+    });
+    score -= 35;
   } else if (shortDesc.length < 100) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'textWarningShortDescTooShort', shortDesc.length),
       suggestion: getMsg(lang, 'textSuggestionShortDescTooShort')
     });
-    score -= 15;
+    score -= 20;
   } else if (shortDesc.length > 300) {
     warnings.push({
       type: 'warning',
@@ -593,9 +601,11 @@ function diagnoseText(gameData, lang = 'ja') {
     passed.push(getMsg(lang, 'textPassedShortDesc', shortDesc.length));
   }
 
-  // Detailed Description チェック
+  // Detailed Description チェック（より厳格に）
   const detailedDesc = gameData.detailed_description || '';
   const detailedDescEn = gameData.detailed_description_en || '';
+  // HTMLタグを除去したプレーンテキストの長さで判断
+  const plainTextLength = detailedDesc.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length;
 
   if (detailedDesc.length === 0) {
     issues.push({
@@ -603,16 +613,36 @@ function diagnoseText(gameData, lang = 'ja') {
       message: getMsg(lang, 'textCriticalNoDetailedDesc'),
       suggestion: getMsg(lang, 'textSuggestionNoDetailedDesc')
     });
-    score -= 30;
-  } else if (detailedDesc.length < 500) {
+    score -= 50;
+  } else if (plainTextLength < 200) {
+    // 実質的なテキストが200文字未満は致命的
+    issues.push({
+      type: 'critical',
+      message: lang === 'ja'
+        ? `詳細説明文が非常に短いです（実質${plainTextLength}文字）`
+        : `Detailed description is very short (${plainTextLength} characters)`,
+      suggestion: lang === 'ja'
+        ? 'ゲームの特徴、世界観、システムを詳しく説明してください。最低500文字以上を推奨します。'
+        : 'Explain your game features, world, and systems in detail. Minimum 500 characters recommended.'
+    });
+    score -= 40;
+  } else if (plainTextLength < 500) {
     warnings.push({
       type: 'warning',
-      message: getMsg(lang, 'textWarningDetailedDescShort'),
+      message: lang === 'ja'
+        ? `詳細説明文が短めです（実質${plainTextLength}文字 / 推奨500文字以上）`
+        : `Detailed description is short (${plainTextLength} characters / 500+ recommended)`,
       suggestion: getMsg(lang, 'textSuggestionDetailedDescShort')
     });
-    score -= 10;
-  } else {
+    score -= 25;
+  } else if (plainTextLength < 1000) {
+    // 500-1000文字は普通
     passed.push(getMsg(lang, 'textPassedDetailedDesc'));
+  } else {
+    // 1000文字以上は良好
+    passed.push(lang === 'ja'
+      ? `詳細説明文: ${plainTextLength}文字（十分な量）`
+      : `Detailed description: ${plainTextLength} characters (sufficient)`);
   }
 
   // 詳細説明文の深い分析
@@ -626,10 +656,11 @@ function diagnoseText(gameData, lang = 'ja') {
 
   return {
     score: Math.max(0, score),
-    maxScore: 35,
-    weightedScore: Math.max(0, score) * 0.35,
+    maxScore: 40,
+    weightedScore: Math.max(0, score) * 0.40,
     shortDescLength: shortDesc.length,
     detailedDescLength: detailedDesc.length,
+    plainTextLength,
     descriptionAnalysis: descAnalysis.details, // 詳細分析結果
     issues,
     warnings,
@@ -894,7 +925,9 @@ function analyzeDescriptionQuality(descJp, descEn, lang = 'ja') {
 }
 
 /**
- * 基本情報診断
+ * 基本情報診断（厳格版）
+ * 基本情報は必須項目なので、満点が取りやすい設計
+ * ただし全体への影響は5%に抑える
  */
 function diagnoseBasicInfo(gameData, lang = 'ja') {
   const issues = [];
@@ -902,17 +935,24 @@ function diagnoseBasicInfo(gameData, lang = 'ja') {
   const passed = [];
   let score = 100;
 
-  // 対応言語チェック
+  // 対応言語チェック（より厳しく）
   const languages = gameData.supported_languages || '';
   const languageCount = (languages.match(/,/g) || []).length + 1;
 
-  if (languageCount < 3) {
+  if (languageCount === 1) {
+    issues.push({
+      type: 'critical',
+      message: getMsg(lang, 'basicWarningFewLanguages'),
+      suggestion: getMsg(lang, 'basicSuggestionFewLanguages')
+    });
+    score -= 40;
+  } else if (languageCount < 3) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'basicWarningFewLanguages2', languageCount),
       suggestion: getMsg(lang, 'basicSuggestionFewLanguages2')
     });
-    score -= 20;
+    score -= 25;
   } else {
     passed.push(getMsg(lang, 'basicPassedLanguages', languageCount));
   }
@@ -920,12 +960,12 @@ function diagnoseBasicInfo(gameData, lang = 'ja') {
   // ジャンル設定チェック
   const genres = gameData.genres || [];
   if (genres.length === 0) {
-    warnings.push({
-      type: 'warning',
+    issues.push({
+      type: 'critical',
       message: getMsg(lang, 'basicWarningNoGenres2'),
       suggestion: getMsg(lang, 'basicSuggestionNoGenres2')
     });
-    score -= 15;
+    score -= 30;
   } else {
     // 英語モードの場合はジャンル名を英語に変換
     const genreNames = genres.map(g => {
@@ -937,15 +977,22 @@ function diagnoseBasicInfo(gameData, lang = 'ja') {
     passed.push(getMsg(lang, 'basicPassedGenres', genreNames));
   }
 
-  // カテゴリ（機能）チェック
+  // カテゴリ（機能）チェック（より厳しく）
   const categories = gameData.categories || [];
-  if (categories.length < 3) {
+  if (categories.length === 0) {
+    issues.push({
+      type: 'critical',
+      message: getMsg(lang, 'basicWarningFewCategories'),
+      suggestion: getMsg(lang, 'basicSuggestionFewCategories')
+    });
+    score -= 30;
+  } else if (categories.length < 3) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'basicWarningFewCategories'),
       suggestion: getMsg(lang, 'basicSuggestionFewCategories')
     });
-    score -= 10;
+    score -= 15;
   } else {
     passed.push(getMsg(lang, 'basicPassedCategories', categories.length));
   }
@@ -959,8 +1006,8 @@ function diagnoseBasicInfo(gameData, lang = 'ja') {
 
   return {
     score: Math.max(0, score),
-    maxScore: 10,
-    weightedScore: Math.max(0, score) * 0.10,
+    maxScore: 5,
+    weightedScore: Math.max(0, score) * 0.05,
     languageCount,
     genreCount: genres.length,
     categoryCount: categories.length,
