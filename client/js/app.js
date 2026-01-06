@@ -1947,27 +1947,27 @@ const StoreDoctor = {
             </div>
           </div>
         ` : ''}
+      </div>
 
-        <div class="disclaimer-section" style="margin-top: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--text-muted);">
-          <p style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin: 0;">
-            ${isJa
-              ? '※ このスコアリングはSteam公式の基準を参考にしつつ、数値的な閾値は独自判断で設定しています。公式ガイドラインは以下をご参照ください。'
-              : '※ This scoring is based on Steam official guidelines, but numerical thresholds are set at our discretion. Please refer to the official guidelines below.'}
-          </p>
-          <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-            <a href="https://partner.steamgames.com/doc/store/tags" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
-              ${isJa ? 'タグ' : 'Tags'} ↗
-            </a>
-            <a href="https://partner.steamgames.com/doc/store/assets/standard" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
-              ${isJa ? '画像アセット' : 'Graphical Assets'} ↗
-            </a>
-            <a href="https://partner.steamgames.com/doc/store/trailer" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
-              ${isJa ? 'トレーラー' : 'Trailers'} ↗
-            </a>
-            <a href="https://partner.steamgames.com/doc/store/page/description" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
-              ${isJa ? '説明文' : 'Descriptions'} ↗
-            </a>
-          </div>
+      <div class="disclaimer-section" style="margin-top: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--text-muted);">
+        <p style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin: 0;">
+          ${isJa
+            ? '※ このスコアリングはSteam公式の基準を参考にしつつ、数値的な閾値は独自判断で設定しています。公式ガイドラインは以下をご参照ください。'
+            : '※ This scoring is based on Steam official guidelines, but numerical thresholds are set at our discretion. Please refer to the official guidelines below.'}
+        </p>
+        <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+          <a href="https://partner.steamgames.com/doc/store/tags" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
+            ${isJa ? 'タグ' : 'Tags'} ↗
+          </a>
+          <a href="https://partner.steamgames.com/doc/store/assets/standard" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
+            ${isJa ? '画像アセット' : 'Graphical Assets'} ↗
+          </a>
+          <a href="https://partner.steamgames.com/doc/store/trailer" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
+            ${isJa ? 'トレーラー' : 'Trailers'} ↗
+          </a>
+          <a href="https://partner.steamgames.com/doc/store/page/description" target="_blank" rel="noopener" style="color: var(--accent-primary); font-size: 0.8rem; text-decoration: none;">
+            ${isJa ? '説明文' : 'Descriptions'} ↗
+          </a>
         </div>
       </div>
     `;
