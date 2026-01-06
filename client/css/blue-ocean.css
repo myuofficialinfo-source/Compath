@@ -503,6 +503,44 @@
   }
 }
 
+/* 検索条件サマリー */
+.search-summary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.search-summary-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.search-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.summary-tag {
+  padding: 6px 12px;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.search-summary-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 8px;
+}
+
 /* 6軸スコア分析 */
 .six-axis-scores {
   background: var(--bg-card);

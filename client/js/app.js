@@ -2017,11 +2017,15 @@ const BlueOcean = {
   currentResult: null,
   steamTags: null, // Steam公式タグ（キャッシュ）
   isLoadingTags: false,
+  currentView: 'input', // 'input' or 'results'
+  lastFreeText: '', // 検索時のフリーテキストを保存
 
   async init() {
     // 選択状態をリセット
     this.selectedTags = [];
     this.currentResult = null;
+    this.currentView = 'input';
+    this.lastFreeText = '';
 
     // まずローディング画面を表示
     this.renderLoadingPage();
@@ -2113,7 +2117,7 @@ const BlueOcean = {
     page.innerHTML = `
       <header class="tool-header">
         <div class="tool-header-left">
-          <button class="back-button" onclick="navigateTo('home')" title="${isJa ? 'ホームに戻る' : 'Back to Home'}">
+          <button class="back-button" onclick="BlueOcean.goBack()" title="${isJa ? '戻る' : 'Back'}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -2207,13 +2211,13 @@ const BlueOcean = {
               ${isJa ? 'CSV出力' : 'Export CSV'}
             </button>
           </div>
+          <div id="search-summary"></div>
           <div id="ocean-result"></div>
           <div id="market-stats"></div>
           <div id="market-map"></div>
           <div id="competitors-section"></div>
           <div id="ai-analysis"></div>
           <div id="pivot-section"></div>
-          <div id="verdict-section"></div>
         </section>
       </div>
 
@@ -2328,6 +2332,7 @@ const BlueOcean = {
     }
 
     const freeText = document.getElementById('free-text').value.trim();
+    this.lastFreeText = freeText; // 検索時のテキストを保存
 
     try {
       UI.showLoading(isJa ? '市場を分析中...' : 'Analyzing market...');
@@ -2358,6 +2363,7 @@ const BlueOcean = {
       // 結果ビューを表示
       document.getElementById('ocean-input-view').classList.add('hidden');
       document.getElementById('ocean-results-view').classList.remove('hidden');
+      this.currentView = 'results';
 
       // サーバーから返されたオーシャンカラーと位置を使用
       const oceanColor = result.oceanColor || 'yellow';
@@ -2365,6 +2371,8 @@ const BlueOcean = {
       const totalScore = result.totalScore || 50;
       const sixAxisScores = result.sixAxisScores || null;
 
+      // 検索条件サマリーを最上部に表示
+      this.renderSearchSummary();
       this.renderOceanResult(oceanColor, totalScore, result.oceanExplanation);
       this.renderMarketStats(result.stats);
       this.renderMarketMap(marketPos, oceanColor);
@@ -2372,7 +2380,6 @@ const BlueOcean = {
       this.renderCompetitors(result.topCompetitors);
       this.renderAIAnalysis(result.aiAnalysis);
       this.renderPivotSuggestions(result.pivotSuggestions);
-      this.renderVerdict(result.aiAnalysis);
 
       UI.hideLoading();
 
@@ -2381,6 +2388,41 @@ const BlueOcean = {
       UI.hideLoading();
       UI.showToast(error.message, 'error');
     }
+  },
+
+  goBack() {
+    if (this.currentView === 'results') {
+      // 結果画面 → 入力画面に戻る
+      document.getElementById('ocean-results-view').classList.add('hidden');
+      document.getElementById('ocean-input-view').classList.remove('hidden');
+      this.currentView = 'input';
+
+      // 6軸スコア表示をクリア（重複防止）
+      const sixAxisEl = document.querySelector('.six-axis-scores');
+      if (sixAxisEl) sixAxisEl.remove();
+    } else {
+      // 入力画面 → ホームに戻る
+      navigateTo('home');
+    }
+  },
+
+  renderSearchSummary() {
+    const container = document.getElementById('search-summary');
+    if (!container) return;
+
+    const isJa = Lang.current === 'ja';
+    const tagNames = this.selectedTags.map(t => t.name);
+    const freeText = this.lastFreeText;
+
+    container.innerHTML = `
+      <div class="search-summary">
+        <div class="search-summary-label">${isJa ? '検索条件' : 'Search Criteria'}</div>
+        <div class="search-summary-tags">
+          ${tagNames.map(name => `<span class="summary-tag">${UI.escapeHtml(name)}</span>`).join('')}
+        </div>
+        ${freeText ? `<div class="search-summary-text">"${UI.escapeHtml(freeText)}"</div>` : ''}
+      </div>
+    `;
   },
 
   renderOceanResult(oceanColor, totalScore, explanation) {
