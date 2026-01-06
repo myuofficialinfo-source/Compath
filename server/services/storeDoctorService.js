@@ -846,31 +846,35 @@ function analyzeDescriptionQualityAdditive(descJp, descEn, lang = 'ja') {
   const pCount = (descJp.match(/<\/p>/gi) || []).length;
   const paragraphBreaks = brCount + pCount;
 
-  // 1000文字あたりの改行数を計算
-  const breaksPerThousand = plainText.length > 0
-    ? Math.round((paragraphBreaks / plainText.length) * 1000)
+  // 100文字あたりの改行数を計算（より厳しく）
+  const breaksPerHundred = plainText.length > 0
+    ? (paragraphBreaks / plainText.length) * 100
     : 0;
 
   details.paragraphBreaks = paragraphBreaks;
-  details.breaksPerThousand = breaksPerThousand;
+  details.breaksPerHundred = breaksPerHundred;
 
-  // 十分な改行があるかチェック（500文字以上のテキストでは10個以上の改行を期待）
-  const hasEnoughBreaks = paragraphBreaks >= 10 && breaksPerThousand >= 10;
-  const hasSomeBreaks = paragraphBreaks >= 5 && breaksPerThousand >= 5;
+  console.log('[StoreDiagnosis] Break analysis:', { brCount, pCount, paragraphBreaks, plainTextLength: plainText.length, breaksPerHundred });
 
-  if (!hasSomeBreaks && plainText.length > 200) {
+  // 厳格な改行チェック:
+  // - 最低でも100文字あたり3回以上の改行（3%）
+  // - かつ絶対数で5個以上
+  const hasGoodBreaks = breaksPerHundred >= 3 && paragraphBreaks >= 8;
+  const hasMinimalBreaks = breaksPerHundred >= 2 && paragraphBreaks >= 5;
+
+  if (!hasMinimalBreaks) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'descWarningNoBreaks'),
       suggestion: getMsg(lang, 'descSuggestionNoBreaks')
     });
     // 0点
-  } else if (hasEnoughBreaks) {
+  } else if (hasGoodBreaks) {
     passed.push(getMsg(lang, 'descPassedBreaks'));
     bonus += 7; // 十分な改行で満点
-  } else if (hasSomeBreaks) {
-    passed.push(getMsg(lang, 'descPassedBreaks'));
-    bonus += 3; // 改行はあるが少なめ
+  } else {
+    // hasMinimalBreaks だが hasGoodBreaks ではない
+    // 最低限の改行はあるが、もう少しほしい - 加点なし、警告も出さない
   }
 
   // === 4. ゲーム内容の明確さ分析（最大10点）- 厳格化 ===
