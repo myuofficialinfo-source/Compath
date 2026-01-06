@@ -145,6 +145,395 @@
             BarChart, Bar, Legend, ScatterChart, Scatter, ZAxis, ReferenceLine, ComposedChart
         } = window.Recharts;
 
+        // i18n support - get language from parent frame or URL param
+        const getLanguage = () => {
+            try {
+                // Check URL parameter first
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlLang = urlParams.get('lang');
+                if (urlLang) return urlLang;
+                // Check parent frame
+                if (window.parent && window.parent.Lang) {
+                    return window.parent.Lang.current || 'ja';
+                }
+            } catch (e) {}
+            return 'ja';
+        };
+
+        const i18n = {
+            ja: {
+                // Header & Navigation
+                brandName: 'STEAM分析マン',
+                brandSub: 'Market Strategy Tool',
+                allGames: 'すべてのゲーム',
+                showAll: '（すべて表示）',
+                newList: '新規リスト',
+                searchPlaceholder: 'Steamストアを検索して追加...',
+                updating: '更新中...',
+                tableView: 'テーブル表示',
+                cardView: 'カード表示',
+                revenueSimulator: '収益シミュレーター',
+                compareAnalysis: '分析比較 (Battle Mode)',
+                settings: '係数設定',
+
+                // Dashboard
+                allData: 'すべてのデータ',
+                allDataDesc: '登録済み全データの俯瞰と分析リストの統合管理ハブ',
+                registeredTitles: '登録タイトル',
+                analysisLists: '分析リスト',
+                releaseYearStats: 'リリース年統計 (直近)',
+                popularTags: '人気タグ構成 (全体)',
+                poolList: 'プールリスト',
+                uncategorized: '未分類',
+                backToProjectList: 'プロジェクト一覧へ戻る',
+
+                // List View
+                listDesc: 'この分析リストに登録されたタイトルの詳細統計と市場分布',
+                targetTitles: '対象タイトル',
+                avgReviews: '平均レビュー',
+                avgScore: '平均スコア',
+                avgPrice: '平均単価',
+                avgEstRevenue: '平均推定収益',
+                releaseYearDist: 'リリース年分布',
+                popularTagComp: '人気タグ構成',
+                blueOceanMap: '市場機会分析 (Blue Ocean Map)',
+                tagDist: 'タグ分布',
+                competitors: '競合タイトル数',
+                avgRevenue: '平均推定収益 (Million Yen)',
+
+                // Table Headers
+                title: 'タイトル',
+                price: '価格',
+                reviews: 'レビュー',
+                score: 'スコア',
+                actions: '操作',
+                searchInList: 'リスト内検索...',
+
+                // Detail View
+                back: '戻る',
+                basicInfo: '基本情報',
+                developer: '開発元',
+                publisher: 'パブリッシャー',
+                releaseDate: 'リリース日',
+                listPrice: '定価',
+                genres: 'ジャンル',
+                userTags: 'ユーザータグ',
+                similarTitles: '類似タイトル',
+                noSimilarTitles: '類似タイトルが見つかりませんでした',
+                noSimilarTitlesHint: 'より多くのゲームを登録すると、類似したタイトルを発見できます',
+                totalReviews: '総レビュー',
+                trendAnalysis: 'トレンド分析 (推定)',
+                screenshots: 'スクリーンショット',
+
+                // Review Text
+                overwhelminglyPositive: '圧倒的に好評',
+                veryPositive: '非常に好評',
+                mostlyPositive: 'やや好評',
+                mixed: '賛否両論',
+                negative: '不評',
+
+                // Compare View
+                compareBattle: '分析比較',
+                compareDesc: '選択した分析リスト間の重要指標を横断的に比較します',
+                revenueBenchmark: '収益性ベンチマーク',
+                avgMedian: '(平均 / 中央値)',
+                avgRevenueLabel: '平均収益',
+                medianLabel: '中央値',
+                positioningMatrix: 'ポジショニング・マトリクス',
+                reviewScoreLabel: 'レビュースコア',
+                revenueLabel: '収益',
+                titleCount: 'タイトル数',
+
+                // Calculator View
+                revenueSimulatorTitle: '収益シミュレーター',
+                proVersion: 'Pro version',
+                calculatorDesc: '詳細な財務パラメータに基づき、収益性をシミュレーションします',
+                estimationParams: '推計パラメータ',
+                reviewCountCoef: 'レビュー数 / 係数',
+                priceJpy: '定価 (JPY)',
+                aspCoef: 'ASP係数',
+                regionalAdj: '地域補正',
+                taxRate: '税率',
+                refundRate: '返品率',
+                pubRate: 'PUB率',
+                devAdCost: '開発・広告費',
+                estGrossSales: '推定総売上 (Gross)',
+                salesCount: '販売数',
+                effectivePrice: '実効単価',
+                finalProfit: '最終利益 (Profit)',
+                profitLoss: (p) => p >= 0 ? '黒字' : '赤字',
+                revenueBreakdown: '収益の内訳',
+                developerLabel: '開発元',
+                publisherLabel: '出版社',
+                steamLabel: 'Steam',
+                taxLabel: '税金',
+                refundLabel: '返品',
+                devNetRevenue: '開発元 純収益額',
+
+                // Config Modal
+                analysisSettings: '分析設定',
+                boxleiterCoef: 'Boxleiter係数',
+                boxleiterHelp: '総レビュー数から販売本数を推定するための係数です。',
+                aspCoefLabel: 'ASP係数',
+                aspCoefHelp: '定価に対して、実際にユーザーが支払った平均単価の割合です。',
+                saveRecalc: '保存して再計算',
+                deleteAllData: '全データを削除して初期化',
+
+                // Dialogs & Toasts
+                cancel: 'キャンセル',
+                delete: '削除',
+                deleteConfirm: '削除しますか？',
+                completeDelete: '完全に削除',
+                removeFromList: 'リストから除外',
+                removeFromListConfirm: 'このリストから除外しますか？',
+                removedFromList: 'リストから除外しました',
+                createList: 'リスト作成',
+                createListPrompt: '新しいリストの名前を入力してください:',
+                listCreated: (name) => `リスト「${name}」を作成しました`,
+                rename: '名前変更',
+                renamePrompt: 'リスト名を変更:',
+                editDescription: '説明文の編集',
+                editDescPrompt: 'リストの説明文を入力してください:',
+                deleteListTitle: 'リスト削除',
+                deleteListConfirm: (name) => `リスト「${name}」を削除しますか？`,
+                listDeleted: 'リストを削除しました',
+                dataReset: 'データ初期化',
+                dataResetConfirm: 'すべてのゲームデータとリスト設定を削除して初期状態に戻しますか？',
+
+                // Add Game Modal
+                addGame: 'ゲームを追加',
+                addGameDesc: 'Steam App IDを入力してください（カンマ、改行、スペース区切り可）。',
+                currentList: (name) => `現在選択中のリスト: ${name || '全てのゲーム'} に追加されます。`,
+                addGamePlaceholder: '例: 730, 570',
+                executeAdd: '追加を実行',
+
+                // List Manager Modal
+                listManagement: 'リスト管理',
+                noLists: 'リストがありません。\nダッシュボードで作成してください。',
+
+                // Status Messages
+                fetchingStart: (n) => `${n}件の取得を開始...`,
+                fetching: (id, cur, total) => `取得中: ${id} (${cur}/${total})`,
+                addComplete: (n) => `${n}件 追加完了`,
+                noValidAppId: '有効なApp IDが見つかりません',
+                noGamesToUpdate: '更新対象のゲームがありません',
+                listUpdateProgress: (cur, total) => `リスト更新中: ${cur}/${total}`,
+                listUpdateComplete: 'リストの更新が完了しました',
+                autoUpdateStart: (n) => `${n}個のリストの自動更新を開始します...`,
+                autoUpdateComplete: 'リストの自動更新が完了しました',
+                configUpdated: '分析係数を更新し、再計算しました',
+
+                // Export
+                pngExport: 'PNG出力',
+                csvExportPro: 'CSV出力はPRO版の機能です',
+                pngExportPro: 'PNG出力はPRO版の機能です',
+                generatingImage: '画像を生成中...',
+                imageSaved: '画像を保存しました',
+                imageSaveFailed: 'PNG保存に失敗しました',
+
+                // Empty States
+                dataPoolEmpty: 'データプールが空です',
+                noMatchingGames: '条件に一致するゲームがありません',
+                unknown: '不明',
+                noDescription: '説明文はありません。'
+            },
+            en: {
+                // Header & Navigation
+                brandName: 'STEAM Analyzer',
+                brandSub: 'Market Strategy Tool',
+                allGames: 'All Games',
+                showAll: '(Show All)',
+                newList: 'New List',
+                searchPlaceholder: 'Search Steam Store to add...',
+                updating: 'Updating...',
+                tableView: 'Table View',
+                cardView: 'Card View',
+                revenueSimulator: 'Revenue Simulator',
+                compareAnalysis: 'Compare (Battle Mode)',
+                settings: 'Settings',
+
+                // Dashboard
+                allData: 'All Data',
+                allDataDesc: 'Overview of all registered data and integrated analysis list management hub',
+                registeredTitles: 'Registered Titles',
+                analysisLists: 'Analysis Lists',
+                releaseYearStats: 'Release Year Stats (Recent)',
+                popularTags: 'Popular Tags (Overall)',
+                poolList: 'Pool List',
+                uncategorized: 'Uncategorized',
+                backToProjectList: 'Back to Project List',
+
+                // List View
+                listDesc: 'Detailed statistics and market distribution of titles registered in this analysis list',
+                targetTitles: 'Target Titles',
+                avgReviews: 'Avg Reviews',
+                avgScore: 'Avg Score',
+                avgPrice: 'Avg Price',
+                avgEstRevenue: 'Avg Est. Revenue',
+                releaseYearDist: 'Release Year Distribution',
+                popularTagComp: 'Popular Tag Composition',
+                blueOceanMap: 'Market Opportunity Analysis (Blue Ocean Map)',
+                tagDist: 'Tag Distribution',
+                competitors: 'Competitor Count',
+                avgRevenue: 'Avg Est. Revenue (Million Yen)',
+
+                // Table Headers
+                title: 'Title',
+                price: 'Price',
+                reviews: 'Reviews',
+                score: 'Score',
+                actions: 'Actions',
+                searchInList: 'Search in list...',
+
+                // Detail View
+                back: 'Back',
+                basicInfo: 'Basic Info',
+                developer: 'Developer',
+                publisher: 'Publisher',
+                releaseDate: 'Release Date',
+                listPrice: 'List Price',
+                genres: 'Genres',
+                userTags: 'User Tags',
+                similarTitles: 'Similar Titles',
+                noSimilarTitles: 'No similar titles found',
+                noSimilarTitlesHint: 'Register more games to discover similar titles',
+                totalReviews: 'Total Reviews',
+                trendAnalysis: 'Trend Analysis (Estimated)',
+                screenshots: 'Screenshots',
+
+                // Review Text
+                overwhelminglyPositive: 'Overwhelmingly Positive',
+                veryPositive: 'Very Positive',
+                mostlyPositive: 'Mostly Positive',
+                mixed: 'Mixed',
+                negative: 'Negative',
+
+                // Compare View
+                compareBattle: 'Compare Analysis',
+                compareDesc: 'Cross-compare key metrics between selected analysis lists',
+                revenueBenchmark: 'Revenue Benchmark',
+                avgMedian: '(Avg / Median)',
+                avgRevenueLabel: 'Avg Revenue',
+                medianLabel: 'Median',
+                positioningMatrix: 'Positioning Matrix',
+                reviewScoreLabel: 'Review Score',
+                revenueLabel: 'Revenue',
+                titleCount: 'Title Count',
+
+                // Calculator View
+                revenueSimulatorTitle: 'Revenue Simulator',
+                proVersion: 'Pro version',
+                calculatorDesc: 'Simulate profitability based on detailed financial parameters',
+                estimationParams: 'Estimation Parameters',
+                reviewCountCoef: 'Review Count / Coefficient',
+                priceJpy: 'Price (JPY)',
+                aspCoef: 'ASP Factor',
+                regionalAdj: 'Regional Adjustment',
+                taxRate: 'Tax Rate',
+                refundRate: 'Refund Rate',
+                pubRate: 'Publisher Rate',
+                devAdCost: 'Dev & Ad Cost',
+                estGrossSales: 'Est. Gross Sales',
+                salesCount: 'Sales Count',
+                effectivePrice: 'Effective Price',
+                finalProfit: 'Final Profit',
+                profitLoss: (p) => p >= 0 ? 'Profit' : 'Loss',
+                revenueBreakdown: 'Revenue Breakdown',
+                developerLabel: 'Developer',
+                publisherLabel: 'Publisher',
+                steamLabel: 'Steam',
+                taxLabel: 'Tax',
+                refundLabel: 'Refund',
+                devNetRevenue: 'Developer Net Revenue',
+
+                // Config Modal
+                analysisSettings: 'Analysis Settings',
+                boxleiterCoef: 'Boxleiter Coefficient',
+                boxleiterHelp: 'Coefficient for estimating sales from total reviews.',
+                aspCoefLabel: 'ASP Factor',
+                aspCoefHelp: 'Ratio of actual average payment to list price.',
+                saveRecalc: 'Save & Recalculate',
+                deleteAllData: 'Delete All Data & Reset',
+
+                // Dialogs & Toasts
+                cancel: 'Cancel',
+                delete: 'Delete',
+                deleteConfirm: 'Delete this item?',
+                completeDelete: 'Delete Completely',
+                removeFromList: 'Remove from List',
+                removeFromListConfirm: 'Remove from this list?',
+                removedFromList: 'Removed from list',
+                createList: 'Create List',
+                createListPrompt: 'Enter the name for the new list:',
+                listCreated: (name) => `List "${name}" created`,
+                rename: 'Rename',
+                renamePrompt: 'Rename list:',
+                editDescription: 'Edit Description',
+                editDescPrompt: 'Enter a description for the list:',
+                deleteListTitle: 'Delete List',
+                deleteListConfirm: (name) => `Delete list "${name}"?`,
+                listDeleted: 'List deleted',
+                dataReset: 'Reset Data',
+                dataResetConfirm: 'Delete all game data and list settings and reset to initial state?',
+
+                // Add Game Modal
+                addGame: 'Add Game',
+                addGameDesc: 'Enter Steam App ID(s) (comma, newline, or space separated).',
+                currentList: (name) => `Will be added to: ${name || 'All Games'}`,
+                addGamePlaceholder: 'e.g.: 730, 570',
+                executeAdd: 'Add',
+
+                // List Manager Modal
+                listManagement: 'List Management',
+                noLists: 'No lists available.\nCreate one from the dashboard.',
+
+                // Status Messages
+                fetchingStart: (n) => `Starting fetch of ${n} items...`,
+                fetching: (id, cur, total) => `Fetching: ${id} (${cur}/${total})`,
+                addComplete: (n) => `${n} items added`,
+                noValidAppId: 'No valid App ID found',
+                noGamesToUpdate: 'No games to update',
+                listUpdateProgress: (cur, total) => `Updating list: ${cur}/${total}`,
+                listUpdateComplete: 'List update complete',
+                autoUpdateStart: (n) => `Starting auto-update for ${n} lists...`,
+                autoUpdateComplete: 'Auto-update complete',
+                configUpdated: 'Analysis coefficients updated and recalculated',
+
+                // Export
+                pngExport: 'PNG Export',
+                csvExportPro: 'CSV export is a PRO feature',
+                pngExportPro: 'PNG export is a PRO feature',
+                generatingImage: 'Generating image...',
+                imageSaved: 'Image saved',
+                imageSaveFailed: 'PNG save failed',
+
+                // Empty States
+                dataPoolEmpty: 'Data pool is empty',
+                noMatchingGames: 'No games match the criteria',
+                unknown: 'Unknown',
+                noDescription: 'No description available.'
+            }
+        };
+
+        // Language state - will be updated from parent frame
+        let currentLang = getLanguage();
+
+        // Listen for language changes from parent frame
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'setLanguage') {
+                currentLang = event.data.lang || 'ja';
+                // Force re-render by reloading (or implement React state update)
+                window.location.reload();
+            }
+        });
+
+        const t = (key, ...args) => {
+            const msgs = i18n[currentLang] || i18n.ja;
+            const val = msgs[key];
+            if (typeof val === 'function') return val(...args);
+            return val || key;
+        };
+
         // --- ICONS ---
         const Icon = ({ path, className, ...props }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{path}</svg>
@@ -231,11 +620,11 @@
             return 'text-red-500';
         };
         const getReviewText = (score) => {
-            if (score >= 95) return '圧倒的に好評';
-            if (score >= 80) return '非常に好評';
-            if (score >= 70) return 'やや好評';
-            if (score >= 40) return '賛否両論';
-            return '不評';
+            if (score >= 95) return t('overwhelminglyPositive');
+            if (score >= 80) return t('veryPositive');
+            if (score >= 70) return t('mostlyPositive');
+            if (score >= 40) return t('mixed');
+            return t('negative');
         };
 
         const fetchWithRetry = async (url, retries = 3, delay = 1000, signal = null, responseType = 'json') => {
@@ -340,13 +729,13 @@
                 return {
                     id: parseInt(id),
                     title: d.name,
-                    developer: d.developers ? d.developers[0] : "不明",
-                    publisher: d.publishers ? d.publishers[0] : "不明",
+                    developer: d.developers ? d.developers[0] : t('unknown'),
+                    publisher: d.publishers ? d.publishers[0] : t('unknown'),
                     price: p,
                     reviews,
                     reviewScore,
                     headerImage: d.header_image,
-                    description: d.short_description || "説明文はありません。",
+                    description: d.short_description || t('noDescription'),
                     screenshots: d.screenshots || [],
                     genres: d.genres ? d.genres.map(g => g.description) : ["Game"],
                     userTags: userTags.length > 0 ? userTags : (d.genres ? d.genres.map(g => g.description) : ["Game"]),
@@ -456,18 +845,18 @@
                 <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
                     <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-sm shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
-                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Settings className="w-5 h-5 text-slate-400" /> 分析設定</h3>
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Settings className="w-5 h-5 text-slate-400" /> {t('analysisSettings')}</h3>
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-1">Boxleiter係数<button onClick={() => openHelp('Boxleiter係数', '総レビュー数から販売本数を推定するための係数です。')} className="text-slate-500 hover:text-blue-400"><Icons.HelpCircle className="w-3.5 h-3.5" /></button></label>
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-1">{t('boxleiterCoef')}<button onClick={() => openHelp(t('boxleiterCoef'), t('boxleiterHelp'))} className="text-slate-500 hover:text-blue-400"><Icons.HelpCircle className="w-3.5 h-3.5" /></button></label>
                                 <div className="flex items-center gap-3"><input type="range" min="20" max="60" value={localConfig.multiplier} onChange={(e) => setLocalConfig({ ...localConfig, multiplier: parseInt(e.target.value) })} className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" /><span className="text-blue-400 font-mono font-bold w-8 text-right">{localConfig.multiplier}</span></div>
                             </div>
                             <div>
-                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-1">ASP係数<button onClick={() => openHelp('ASP係数', '定価に対して、実際にユーザーが支払った平均単価の割合です。')} className="text-slate-500 hover:text-green-400"><Icons.HelpCircle className="w-3.5 h-3.5" /></button></label>
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-1">{t('aspCoefLabel')}<button onClick={() => openHelp(t('aspCoefLabel'), t('aspCoefHelp'))} className="text-slate-500 hover:text-green-400"><Icons.HelpCircle className="w-3.5 h-3.5" /></button></label>
                                 <div className="flex items-center gap-3"><input type="range" min="0.3" max="1.0" step="0.05" value={localConfig.aspFactor} onChange={(e) => setLocalConfig({ ...localConfig, aspFactor: parseFloat(e.target.value) })} className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500" /><span className="text-green-400 font-mono font-bold w-8 text-right">{Math.round(localConfig.aspFactor * 100)}%</span></div>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-3"><div className="flex justify-end gap-3 mb-2"><button onClick={() => onSave(localConfig)} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors w-full">保存して再計算</button></div><div className="border-t border-slate-800 pt-4"><button onClick={onReset} className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-900/50 text-red-500 hover:bg-red-900/20 transition-colors text-sm"><Icons.Trash2 className="w-4 h-4" /> 全データを削除して初期化</button></div></div>
+                        <div className="flex flex-col gap-3"><div className="flex justify-end gap-3 mb-2"><button onClick={() => onSave(localConfig)} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors w-full">{t('saveRecalc')}</button></div><div className="border-t border-slate-800 pt-4"><button onClick={onReset} className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-900/50 text-red-500 hover:bg-red-900/20 transition-colors text-sm"><Icons.Trash2 className="w-4 h-4" /> {t('deleteAllData')}</button></div></div>
                     </div>
                 </div>
             );
@@ -516,11 +905,11 @@
                 return {
                     sales, grossRev, refundLoss, tax, steamFee, pubCut, developerNet, finalProfit,
                     pieData: [
-                        { name: '開発元', value: Math.max(0, developerNet), fill: '#4ade80' },
-                        { name: '出版社', value: pubCut, fill: '#6366f1' },
-                        { name: 'Steam', value: steamFee, fill: '#3b82f6' },
-                        { name: '税金', value: tax, fill: '#f43f5e' },
-                        { name: '返品', value: refundLoss, fill: '#94a3b8' },
+                        { name: t('developerLabel'), value: Math.max(0, developerNet), fill: '#4ade80' },
+                        { name: t('publisherLabel'), value: pubCut, fill: '#6366f1' },
+                        { name: t('steamLabel'), value: steamFee, fill: '#3b82f6' },
+                        { name: t('taxLabel'), value: tax, fill: '#f43f5e' },
+                        { name: t('refundLabel'), value: refundLoss, fill: '#94a3b8' },
                     ]
                 };
             }, [params]);
@@ -530,31 +919,31 @@
                     <div className="flex items-center gap-6 mb-10">
                         <button onClick={onBack} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all shadow-xl hover:bg-slate-800"><Icons.ArrowRight className="w-5 h-5 rotate-180" /></button>
                         <div>
-                            <h2 className="text-3xl font-black text-white flex items-center gap-3"><Icons.Calculator className="w-8 h-8 text-blue-500" /> 収益シミュレーター <span className="text-blue-500/50 font-mono text-sm tracking-tighter uppercase">Pro version</span></h2>
-                            <p className="text-slate-500 text-sm font-medium mt-1">詳細な財務パラメータに基づき、収益性をシミュレーションします</p>
+                            <h2 className="text-3xl font-black text-white flex items-center gap-3"><Icons.Calculator className="w-8 h-8 text-blue-500" /> {t('revenueSimulatorTitle')} <span className="text-blue-500/50 font-mono text-sm tracking-tighter uppercase">{t('proVersion')}</span></h2>
+                            <p className="text-slate-500 text-sm font-medium mt-1">{t('calculatorDesc')}</p>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         <div className="lg:col-span-4 space-y-6">
                             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-6">
-                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-800 pb-3 flex items-center gap-2"><Icons.Database className="w-3.5 h-3.5" /> 推計パラメータ</h3>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-800 pb-3 flex items-center gap-2"><Icons.Database className="w-3.5 h-3.5" /> {t('estimationParams')}</h3>
                                 <div className="space-y-4">
-                                    <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">レビュー数 / 係数</label><div className="flex gap-2"><input type="number" value={params.reviews} onChange={e => handleChange('reviews', e.target.value)} className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500 outline-none" /><input type="number" value={params.multiplier} onChange={e => handleChange('multiplier', e.target.value)} className="w-20 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-blue-400 font-mono text-sm focus:border-blue-500 outline-none" /></div></div>
+                                    <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('reviewCountCoef')}</label><div className="flex gap-2"><input type="number" value={params.reviews} onChange={e => handleChange('reviews', e.target.value)} className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500 outline-none" /><input type="number" value={params.multiplier} onChange={e => handleChange('multiplier', e.target.value)} className="w-20 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-blue-400 font-mono text-sm focus:border-blue-500 outline-none" /></div></div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">定価 (JPY)</label><input type="number" value={params.price} onChange={e => handleChange('price', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500 outline-none" /></div>
-                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">ASP係数</label><input type="number" step="0.05" value={params.aspFactor} onChange={e => handleChange('aspFactor', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-green-400 font-mono text-sm focus:border-blue-500 outline-none" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('priceJpy')}</label><input type="number" value={params.price} onChange={e => handleChange('price', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500 outline-none" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('aspCoef')}</label><input type="number" step="0.05" value={params.aspFactor} onChange={e => handleChange('aspFactor', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-green-400 font-mono text-sm focus:border-blue-500 outline-none" /></div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">地域補正</label><input type="number" step="0.01" value={params.regionalPriceFactor} onChange={e => handleChange('regionalPriceFactor', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
-                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">税率</label><input type="number" step="0.01" value={params.vatRate} onChange={e => handleChange('vatRate', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('regionalAdj')}</label><input type="number" step="0.01" value={params.regionalPriceFactor} onChange={e => handleChange('regionalPriceFactor', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('taxRate')}</label><input type="number" step="0.01" value={params.vatRate} onChange={e => handleChange('vatRate', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">返品率</label><input type="number" step="0.01" value={params.refundRate} onChange={e => handleChange('refundRate', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
-                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">PUB率</label><input type="number" step="0.05" value={params.publisherCut} onChange={e => handleChange('publisherCut', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('refundRate')}</label><input type="number" step="0.01" value={params.refundRate} onChange={e => handleChange('refundRate', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
+                                        <div><label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('pubRate')}</label><input type="number" step="0.05" value={params.publisherCut} onChange={e => handleChange('publisherCut', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-mono text-sm" /></div>
                                     </div>
                                     <div className="pt-4 border-t border-slate-800">
-                                        <label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">開発・広告費</label>
-                                        <div className="flex gap-2"><div className="flex-1"><input type="number" value={params.devCost} onChange={e => handleChange('devCost', e.target.value)} placeholder="開発費" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-red-400 font-mono text-sm focus:border-blue-500 outline-none" /></div><div className="flex-1"><input type="number" value={params.marketingBudget} onChange={e => handleChange('marketingBudget', e.target.value)} placeholder="広告" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-red-400 font-mono text-sm focus:border-blue-500 outline-none" /></div></div>
+                                        <label className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase">{t('devAdCost')}</label>
+                                        <div className="flex gap-2"><div className="flex-1"><input type="number" value={params.devCost} onChange={e => handleChange('devCost', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-red-400 font-mono text-sm focus:border-blue-500 outline-none" /></div><div className="flex-1"><input type="number" value={params.marketingBudget} onChange={e => handleChange('marketingBudget', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-red-400 font-mono text-sm focus:border-blue-500 outline-none" /></div></div>
                                     </div>
                                 </div>
                             </div>
@@ -562,24 +951,24 @@
                         <div className="lg:col-span-8 space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
-                                    <div className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-4">推定総売上 (Gross)</div>
+                                    <div className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-4">{t('estGrossSales')}</div>
                                     <div className="text-4xl font-black text-white font-mono break-all">{formatYen(results.grossRev)}</div>
-                                    <div className="mt-6 flex items-center gap-4 text-blue-100/80 text-xs font-bold"><span className="bg-white/10 px-2 py-1 rounded">販売数: {formatNumber(results.sales)}</span><span className="bg-white/10 px-2 py-1 rounded">実効単価: {formatYen(results.grossRev / results.sales)}</span></div>
+                                    <div className="mt-6 flex items-center gap-4 text-blue-100/80 text-xs font-bold"><span className="bg-white/10 px-2 py-1 rounded">{t('salesCount')}: {formatNumber(results.sales)}</span><span className="bg-white/10 px-2 py-1 rounded">{t('effectivePrice')}: {formatYen(results.grossRev / results.sales)}</span></div>
                                 </div>
                                 <div className="bg-gradient-to-br from-emerald-600 to-green-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
-                                    <div className="text-[10px] font-black text-green-100 uppercase tracking-widest mb-4">最終利益 (Profit)</div>
+                                    <div className="text-[10px] font-black text-green-100 uppercase tracking-widest mb-4">{t('finalProfit')}</div>
                                     <div className="text-4xl font-black text-white font-mono break-all">{formatYen(results.finalProfit)}</div>
-                                    <div className="mt-6 flex items-center gap-4 text-green-100/80 text-xs font-bold"><span className="bg-white/10 px-2 py-1 rounded">ROI: {((results.finalProfit / (params.devCost + params.marketingBudget)) * 100 || 0).toFixed(1)}%</span><span className="bg-white/10 px-2 py-1 rounded">{results.finalProfit >= 0 ? '黒字' : '赤字'}</span></div>
+                                    <div className="mt-6 flex items-center gap-4 text-green-100/80 text-xs font-bold"><span className="bg-white/10 px-2 py-1 rounded">ROI: {((results.finalProfit / (params.devCost + params.marketingBudget)) * 100 || 0).toFixed(1)}%</span><span className="bg-white/10 px-2 py-1 rounded">{t('profitLoss', results.finalProfit)}</span></div>
                                 </div>
                             </div>
                             <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center gap-10">
                                 <div className="w-full md:w-1/2 h-64"><ResponsiveContainer><PieChart><Pie data={results.pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">{results.pieData.map((e, i) => <Cell key={i} fill={e.fill} />)}</Pie><Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }} formatter={(v) => formatYen(v)} /></PieChart></ResponsiveContainer></div>
                                 <div className="w-full md:w-1/2 space-y-3">
-                                    <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-widest">収益の内訳</h4>
+                                    <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-widest">{t('revenueBreakdown')}</h4>
                                     {results.pieData.map((it, idx) => (
                                         <div key={idx} className="flex justify-between text-sm"><div className="flex items-center gap-2 text-slate-500"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: it.fill }}></div>{it.name}</div><div className="font-mono text-white">{formatYen(it.value)}</div></div>
                                     ))}
-                                    <div className="pt-4 mt-4 border-t border-slate-800 flex justify-between text-sm font-bold"><span className="text-slate-400">開発元 純収益額</span><span className="text-emerald-400 font-mono">{formatYen(results.developerNet)}</span></div>
+                                    <div className="pt-4 mt-4 border-t border-slate-800 flex justify-between text-sm font-bold"><span className="text-slate-400">{t('devNetRevenue')}</span><span className="text-emerald-400 font-mono">{formatYen(results.developerNet)}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -603,7 +992,7 @@
                         <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
                         <p className="text-slate-400 text-sm mb-6 whitespace-pre-wrap">{message}</p>
                         {type === 'prompt' && (<input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none mb-6" autoFocus />)}
-                        <div className="flex justify-end gap-3">{(type === 'confirm' || type === 'prompt') && <button onClick={onCancel} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">キャンセル</button>}<button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors">OK</button></div>
+                        <div className="flex justify-end gap-3">{(type === 'confirm' || type === 'prompt') && <button onClick={onCancel} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">{t('cancel')}</button>}<button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors">OK</button></div>
                     </div>
                 </div>
             );
@@ -640,10 +1029,10 @@
                 <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onClose}>
                     <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-md shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
-                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Plus className="w-5 h-5 text-blue-500" /> ゲームを追加</h3>
-                        <p className="text-xs text-slate-400 mb-4 leading-relaxed">Steam App IDを入力してください（カンマ、改行、スペース区切り可）。<br /><span className="text-blue-400">現在選択中のリスト: {activeListName || '全てのゲーム'}</span> に追加されます。</p>
-                        <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-white font-mono h-24 focus:border-blue-500 outline-none mb-4 placeholder-slate-600" placeholder="例: 730, 570"></textarea>
-                        <button onClick={() => { if (input.trim()) { onAdd(input); setInput(''); } }} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-all">追加を実行</button>
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Icons.Plus className="w-5 h-5 text-blue-500" /> {t('addGame')}</h3>
+                        <p className="text-xs text-slate-400 mb-4 leading-relaxed">{t('addGameDesc')}<br /><span className="text-blue-400">{t('currentList', activeListName)}</span></p>
+                        <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-white font-mono h-24 focus:border-blue-500 outline-none mb-4 placeholder-slate-600" placeholder={t('addGamePlaceholder')}></textarea>
+                        <button onClick={() => { if (input.trim()) { onAdd(input); setInput(''); } }} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-all">{t('executeAdd')}</button>
                     </div>
                 </div>
             );
@@ -661,10 +1050,10 @@
                 <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onClose}>
                     <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl w-full max-w-sm shadow-2xl relative animate-fade-in" onClick={e => e.stopPropagation()}>
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icons.X /></button>
-                        <h3 className="font-bold text-white mb-1">リスト管理</h3>
+                        <h3 className="font-bold text-white mb-1">{t('listManagement')}</h3>
                         <p className="text-xs text-slate-400 mb-4 truncate">{game.title}</p>
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                            {lists.length === 0 && <p className="text-sm text-slate-500 text-center py-4">リストがありません。<br />ダッシュボードで作成してください。</p>}
+                            {lists.length === 0 && <p className="text-sm text-slate-500 text-center py-4 whitespace-pre-wrap">{t('noLists')}</p>}
                             {lists.map(list => (
                                 <label key={list.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer border border-transparent hover:border-slate-600 transition-colors">
                                     <input type="checkbox" checked={list.gameIds.includes(game.id)} onChange={() => onToggleList(list.id, game.id)} className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-0" />
@@ -745,7 +1134,7 @@
                             onChange={handleSearchChange}
                             onBlur={handleBlur}
                             onFocus={() => { if (searchTerm.length >= 2) setIsSuggestOpen(true); }}
-                            placeholder="Steamストアを検索して追加..."
+                            placeholder={t('searchPlaceholder')}
                             className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white focus:border-blue-500 outline-none"
                         />
                     </div>
@@ -795,9 +1184,9 @@
                                 </div>
                                 <div className="flex flex-col">
                                     <h1 className="text-lg font-black tracking-tight text-white leading-none">
-                                        STEAM<span className="text-blue-500">分析マン</span>
+                                        {currentLang === 'ja' ? <>STEAM<span className="text-blue-500">分析マン</span></> : <>STEAM<span className="text-blue-500"> Analyzer</span></>}
                                     </h1>
-                                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">Market Strategy Tool</span>
+                                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">{t('brandSub')}</span>
                                 </div>
                             </div>
                         </div>
@@ -808,7 +1197,7 @@
                                 <button
                                     onClick={() => { setActiveListId(null); setView('dashboard'); }}
                                     className={`p-2 rounded-xl transition-all ${activeListId === null ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`}
-                                    title="すべてのゲーム"
+                                    title={t('allGames')}
                                 >
                                     <Icons.Home className="w-4 h-4" />
                                 </button>
@@ -818,13 +1207,13 @@
                                         onChange={(e) => { setActiveListId(e.target.value || null); setView('dashboard'); }}
                                         className="w-full appearance-none bg-transparent text-white pl-3 pr-8 py-1.5 rounded-lg font-bold text-sm cursor-pointer outline-none"
                                     >
-                                        <option value="" className="bg-slate-900 text-white text-sm">（すべて表示）</option>
+                                        <option value="" className="bg-slate-900 text-white text-sm">{t('showAll')}</option>
                                         {lists.map(l => <option key={l.id} value={l.id} className="bg-slate-900 text-white text-sm">{l.name}</option>)}
                                     </select>
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><Icons.ChevronDown className="w-3.5 h-3.5" /></div>
                                 </div>
                                 <div className="flex items-center gap-0.5 border-l border-slate-700 ml-1 pl-1">
-                                    <button onClick={createList} className="p-2 text-slate-500 hover:text-blue-400 transition-colors" title="新規リスト"><Icons.Plus className="w-4 h-4" /></button>
+                                    <button onClick={createList} className="p-2 text-slate-500 hover:text-blue-400 transition-colors" title={t('newList')}><Icons.Plus className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         </div>
@@ -839,7 +1228,7 @@
                                 {isUpdating && (
                                     <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                                         <Icons.RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-                                        <span className="text-[10px] font-bold text-blue-400">更新中...</span>
+                                        <span className="text-[10px] font-bold text-blue-400">{t('updating')}</span>
                                     </div>
                                 )}
 
@@ -849,31 +1238,31 @@
                                     <button
                                         onClick={() => setViewMode('table')}
                                         className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                                        title="テーブル表示"
+                                        title={t('tableView')}
                                     >
                                         <Icons.Table className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => setViewMode('card')}
                                         className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                                        title="カード表示"
+                                        title={t('cardView')}
                                     >
                                         <Icons.LayoutGrid className="w-4 h-4" />
                                     </button>
                                 </div>
 
-                                <button onClick={() => setView('calculator')} className={`p-2 transition-all ${view === 'calculator' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`} title="収益シミュレーター"><Icons.Calculator className="w-4 h-4" /></button>
+                                <button onClick={() => setView('calculator')} className={`p-2 transition-all ${view === 'calculator' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`} title={t('revenueSimulator')}><Icons.Calculator className="w-4 h-4" /></button>
                                 <button
                                     onClick={() => setView('compare')}
                                     className={`p-2 transition-all ${view === 'compare' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
-                                    title="分析比較 (Battle Mode)"
+                                    title={t('compareAnalysis')}
                                 >
                                     <Icons.Scale className="w-4 h-4" />
                                 </button>
 
                                 <div className="h-6 w-px bg-slate-800 mx-1 hidden md:block"></div>
 
-                                <button onClick={onOpenConfig} className="p-2 text-slate-500 hover:text-white transition-colors hidden sm:block" title="係数設定"><Icons.Settings className="w-4 h-4" /></button>
+                                <button onClick={onOpenConfig} className="p-2 text-slate-500 hover:text-white transition-colors hidden sm:block" title={t('settings')}><Icons.Settings className="w-4 h-4" /></button>
                             </div>
                         </div>
                     </div>
@@ -926,15 +1315,15 @@
                         <div className="flex items-center gap-6">
                             <button onClick={onBack} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all shadow-xl hover:bg-slate-800"><Icons.ArrowRight className="w-5 h-5 rotate-180" /></button>
                             <div>
-                                <h2 className="text-3xl font-black text-white flex items-center gap-3"><Icons.Scale className="w-8 h-8 text-blue-500" /> 分析比較 <span className="text-blue-500/50 font-mono text-sm tracking-tighter uppercase">Battle Mode</span></h2>
-                                <p className="text-slate-500 text-sm font-medium mt-1">選択した分析リスト間の重要指標を横断的に比較します</p>
+                                <h2 className="text-3xl font-black text-white flex items-center gap-3"><Icons.Scale className="w-8 h-8 text-blue-500" /> {t('compareBattle')} <span className="text-blue-500/50 font-mono text-sm tracking-tighter uppercase">Battle Mode</span></h2>
+                                <p className="text-slate-500 text-sm font-medium mt-1">{t('compareDesc')}</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                         <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10"><Icons.DollarSign className="text-green-500" /> 収益性ベンチマーク <span className="text-[10px] opacity-50">(平均 / 中央値)</span></h3>
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10"><Icons.DollarSign className="text-green-500" /> {t('revenueBenchmark')} <span className="text-[10px] opacity-50">{t('avgMedian')}</span></h3>
                             <div className="h-80 relative z-10">
                                 <ResponsiveContainer>
                                     <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 40, left: 20, bottom: 0 }}>
@@ -946,20 +1335,20 @@
                                             formatter={(val) => formatYen(val)}
                                             cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                         />
-                                        <Bar dataKey="avgRev" name="平均収益" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} />
-                                        <Bar dataKey="medianRev" name="中央値" fill="#10b981" radius={[0, 4, 4, 0]} barSize={8} />
+                                        <Bar dataKey="avgRev" name={t('avgRevenueLabel')} fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} />
+                                        <Bar dataKey="medianRev" name={t('medianLabel')} fill="#10b981" radius={[0, 4, 4, 0]} barSize={8} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>
 
                         <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10"><Icons.Activity className="text-blue-500" /> ポジショニング・マトリクス <span className="text-[10px] opacity-50">(Score x Rev)</span></h3>
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10"><Icons.Activity className="text-blue-500" /> {t('positioningMatrix')} <span className="text-[10px] opacity-50">(Score x Rev)</span></h3>
                             <div className="h-80 relative z-10">
                                 <ResponsiveContainer>
                                     <ScatterChart margin={{ top: 0, right: 20, bottom: 20, left: 10 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                        <XAxis type="number" dataKey="x" name="Score" unit="%" domain={[0, 100]} stroke="#475569" fontSize={10} label={{ value: 'レビュースコア', position: 'bottom', fill: '#475569', fontSize: 10, offset: 10 }} />
+                                        <XAxis type="number" dataKey="x" name="Score" unit="%" domain={[0, 100]} stroke="#475569" fontSize={10} label={{ value: t('reviewScoreLabel'), position: 'bottom', fill: '#475569', fontSize: 10, offset: 10 }} />
                                         <YAxis type="number" dataKey="y" name="Revenue" stroke="#475569" fontSize={10} tickFormatter={(v) => `¥${(v / 1000000).toFixed(0)}M`} width={50} />
                                         <Tooltip
                                             cursor={{ strokeDasharray: '3 3' }}
@@ -969,8 +1358,8 @@
                                                     return (
                                                         <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl shadow-2xl text-xs">
                                                             <p className="font-black text-white mb-1">{d.title}</p>
-                                                            <div className="flex justify-between gap-4"><span className="text-slate-500">収益:</span><span className="text-green-400 font-mono font-bold">{formatYen(d.y)}</span></div>
-                                                            <div className="flex justify-between gap-4"><span className="text-slate-500">スコア:</span><span className="text-yellow-500 font-mono font-bold">{d.x}%</span></div>
+                                                            <div className="flex justify-between gap-4"><span className="text-slate-500">{t('revenueLabel')}:</span><span className="text-green-400 font-mono font-bold">{formatYen(d.y)}</span></div>
+                                                            <div className="flex justify-between gap-4"><span className="text-slate-500">{t('score')}:</span><span className="text-yellow-500 font-mono font-bold">{d.x}%</span></div>
                                                         </div>
                                                     );
                                                 }
@@ -1006,9 +1395,9 @@
                             <thead>
                                 <tr className="bg-slate-950/50 border-b border-slate-800">
                                     <th className="px-6 py-5 w-16"></th>
-                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">分析リスト</th>
-                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">タイトル数</th>
-                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">平均スコア</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('analysisLists')}</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('titleCount')}</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('avgScore')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/50">
@@ -1062,7 +1451,7 @@
 
             const handleSectionCsv = () => {
                 if (!isProSection()) {
-                    addToast('CSV出力はPRO版の機能です', 'error');
+                    addToast(t('csvExportPro'), 'error');
                     return;
                 }
                 const headers = ["ID", "Title", "Release", "Price", "Score", "Reviews", "Peak", "Sales(Est)", "Revenue(Est)", "WL(Est)"];
@@ -1090,11 +1479,11 @@
 
             const handleSectionPng = async () => {
                 if (!isProSection()) {
-                    addToast('PNG出力はPRO版の機能です', 'error');
+                    addToast(t('pngExportPro'), 'error');
                     return;
                 }
                 if (!sectionRef.current) return;
-                const toastId = addToast('画像を生成中...', 'loading');
+                const toastId = addToast(t('generatingImage'), 'loading');
                 try {
                     const { offsetWidth, offsetHeight } = sectionRef.current;
                     const dataUrl = await domtoimage.toPng(sectionRef.current, {
@@ -1117,11 +1506,11 @@
                     link.href = dataUrl;
                     link.click();
                     removeToast(toastId);
-                    addToast('画像を保存しました', 'success');
+                    addToast(t('imageSaved'), 'success');
                 } catch (e) {
                     console.error("PNG generation failed", e);
                     removeToast(toastId);
-                    addToast("PNG保存に失敗しました", 'error');
+                    addToast(t('imageSaveFailed'), 'error');
                 }
             };
 
@@ -1146,7 +1535,7 @@
                                     type="text"
                                     value={search || ""}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="リスト内検索..."
+                                    placeholder={t('searchInList')}
                                     className="bg-slate-950/50 border border-slate-800 rounded-full pl-9 pr-4 py-1.5 text-[11px] w-32 md:w-48 outline-none focus:border-blue-500 focus:bg-slate-900 text-slate-200 transition-all focus:w-48 md:focus:w-56"
                                 />
                             </div>
@@ -1191,11 +1580,11 @@
                                     <table className="w-full text-left text-sm text-slate-400">
                                         <thead className="bg-slate-900 text-xs uppercase text-slate-500 sticky top-0 z-10">
                                             <tr>
-                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('title')}>タイトル <SortIcon colKey="title" sortConfig={sortConfig} /></th>
-                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('price')}>価格 <SortIcon colKey="price" sortConfig={sortConfig} /></th>
-                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('reviews')}>レビュー <SortIcon colKey="reviews" sortConfig={sortConfig} /></th>
-                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('reviewScore')}>スコア <SortIcon colKey="reviewScore" sortConfig={sortConfig} /></th>
-                                                <th className="px-4 py-3 font-bold text-right no-capture">操作</th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('title')}>{t('title')} <SortIcon colKey="title" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('price')}>{t('price')} <SortIcon colKey="price" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('reviews')}>{t('reviews')} <SortIcon colKey="reviews" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold cursor-pointer hover:text-white" onClick={() => onSort('reviewScore')}>{t('score')} <SortIcon colKey="reviewScore" sortConfig={sortConfig} /></th>
+                                                <th className="px-4 py-3 font-bold text-right no-capture">{t('actions')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900/50">
@@ -1212,7 +1601,7 @@
                                                     <td className={`px-4 py-3 font-bold ${calculateReviewColor(g.reviewScore)}`}>{g.reviewScore}%</td>
                                                     <td className="px-4 py-3 text-right no-capture" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex justify-end gap-1 md:gap-2">
-                                                            <button onClick={(e) => onDelete(e, g.id)} className="p-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border border-slate-700 transition-colors" title="削除"><Icons.Trash className="w-3.5 h-3.5" /></button>
+                                                            <button onClick={(e) => onDelete(e, g.id)} className="p-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded border border-slate-700 transition-colors" title={t('delete')}><Icons.Trash className="w-3.5 h-3.5" /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -1325,7 +1714,7 @@
             };
 
             const handleResetData = () => {
-                openDialog('confirm', 'データ初期化', 'すべてのゲームデータとリスト設定を削除して初期状態に戻しますか？', () => {
+                openDialog('confirm', t('dataReset'), t('dataResetConfirm'), () => {
                     localStorage.removeItem('steamlytic_games_pool');
                     localStorage.removeItem('steamlytic_lists');
                     setGames([]); setLists([]); setActiveListId(null);
@@ -1547,7 +1936,7 @@
                     .slice(0, 10);
             }, [filteredGames]);
 
-            const handleConfigSave = (newConfig) => { setConfig(newConfig); setShowConfigModal(false); addToast('分析係数を更新し、再計算しました', 'success'); };
+            const handleConfigSave = (newConfig) => { setConfig(newConfig); setShowConfigModal(false); addToast(t('configUpdated'), 'success'); };
 
             // 親フレームからのメッセージを受信（埋め込みモード用）
             const handleAddBatchRef = useRef(null);
@@ -1570,13 +1959,13 @@
             const handleAddBatch = async (input) => {
                 const normalizedInput = input.replace(/[、，]/g, ',');
                 const ids = normalizedInput.split(/[\s,\n]+/).filter(x => x && !isNaN(x)).map(x => parseInt(x));
-                if (!ids.length) { addToast('有効なApp IDが見つかりません', 'error'); return; }
+                if (!ids.length) { addToast(t('noValidAppId'), 'error'); return; }
                 setSyncing(true); setShowAddModal(false);
-                const toastId = addToast(`${ids.length}件の取得を開始...`, 'loading', 0);
+                const toastId = addToast(t('fetchingStart', ids.length), 'loading', 0);
                 let newGameIds = [], successCount = 0, failCount = 0;
                 for (let i = 0; i < ids.length; i++) {
                     const id = ids[i];
-                    updateToast(toastId, { message: `取得中: ${id} (${i + 1}/${ids.length})`, progress: Math.round((i / ids.length) * 100) });
+                    updateToast(toastId, { message: t('fetching', id, i + 1, ids.length), progress: Math.round((i / ids.length) * 100) });
                     if (games.some(g => g.id === id)) { newGameIds.push(id); successCount++; continue; }
                     const data = await fetchGame(id, config.multiplier, config.aspFactor);
                     if (data) { setGames(prev => [...prev, data]); newGameIds.push(data.id); successCount++; } else failCount++;
@@ -1584,7 +1973,7 @@
                 }
                 if (activeListId) setLists(prev => prev.map(l => l.id === activeListId ? { ...l, gameIds: [...new Set([...l.gameIds, ...newGameIds])] } : l));
                 setSyncing(false);
-                updateToast(toastId, { message: `${successCount}件 追加完了`, type: 'success', progress: 100 });
+                updateToast(toastId, { message: t('addComplete', successCount), type: 'success', progress: 100 });
             };
 
             // handleAddBatchをrefに保存（postMessageから呼び出し用）
@@ -1595,49 +1984,49 @@
                 setSyncing(true);
                 const targetList = lists.find(l => l.id === activeListId);
                 const idsToSync = targetList.gameIds;
-                if (idsToSync.length === 0) { setSyncing(false); addToast("更新対象のゲームがありません", 'error'); return; }
-                const toastId = addToast(`リスト更新中: 0/${idsToSync.length}`, 'loading', 0);
+                if (idsToSync.length === 0) { setSyncing(false); addToast(t('noGamesToUpdate'), 'error'); return; }
+                const toastId = addToast(t('listUpdateProgress', 0, idsToSync.length), 'loading', 0);
                 for (let i = 0; i < idsToSync.length; i++) {
                     const id = idsToSync[i];
-                    updateToast(toastId, { message: `更新中: ${id} (${i + 1}/${idsToSync.length})`, progress: Math.round((i / idsToSync.length) * 100) });
+                    updateToast(toastId, { message: t('fetching', id, i + 1, idsToSync.length), progress: Math.round((i / idsToSync.length) * 100) });
                     const data = await fetchGame(id, config.multiplier, config.aspFactor);
                     if (data) setGames(prev => prev.map(g => g.id === id ? data : g));
                     await new Promise(r => setTimeout(r, 600));
                 }
                 setLists(prev => prev.map(l => l.id === activeListId ? { ...l, lastUpdated: new Date().toISOString() } : l));
                 setSyncing(false);
-                updateToast(toastId, { message: "リストの更新が完了しました", type: 'success', progress: 100 });
+                updateToast(toastId, { message: t('listUpdateComplete'), type: 'success', progress: 100 });
             };
 
             const handleResetFromConfig = () => { setShowConfigModal(false); handleResetData(); };
-            const handleDeleteGame = (e, id) => { e.stopPropagation(); openDialog('confirm', '完全に削除', '削除しますか？', () => { setGames(p => p.filter(g => g.id !== id)); setLists(p => p.map(l => ({ ...l, gameIds: l.gameIds.filter(gid => gid !== id) }))); }); };
+            const handleDeleteGame = (e, id) => { e.stopPropagation(); openDialog('confirm', t('completeDelete'), t('deleteConfirm'), () => { setGames(p => p.filter(g => g.id !== id)); setLists(p => p.map(l => ({ ...l, gameIds: l.gameIds.filter(gid => gid !== id) }))); }); };
             const toggleGameInList = (lid, gid) => setLists(p => p.map(l => l.id === lid ? { ...l, gameIds: l.gameIds.includes(gid) ? l.gameIds.filter(i => i !== gid) : [...l.gameIds, gid] } : l));
-            const removeFromCurrentList = (e, gid) => { e.stopPropagation(); if (!activeListId) return; openDialog('confirm', 'リストから除外', "このリストから除外しますか？", () => { toggleGameInList(activeListId, gid); addToast("リストから除外しました", 'success'); }); };
+            const removeFromCurrentList = (e, gid) => { e.stopPropagation(); if (!activeListId) return; openDialog('confirm', t('removeFromList'), t('removeFromListConfirm'), () => { toggleGameInList(activeListId, gid); addToast(t('removedFromList'), 'success'); }); };
             const openListModal = (e, g) => { e.stopPropagation(); setModalGame(g); setShowListModal(true); };
 
-            const createList = () => openDialog('prompt', 'リスト作成', '新しいリストの名前を入力してください:', (name) => {
+            const createList = () => openDialog('prompt', t('createList'), t('createListPrompt'), (name) => {
                 if (name && name.trim()) {
                     const newList = { id: Date.now().toString(), name: name.trim(), gameIds: [] };
                     setLists(prev => [...prev, newList]);
                     setActiveListId(newList.id);
-                    addToast(`リスト「${name}」を作成しました`, 'success');
+                    addToast(t('listCreated', name), 'success');
                 }
             });
             const renameList = (target) => {
                 const list = target && target.id ? target : activeList;
                 if (!list) return;
-                openDialog('prompt', '名前変更', 'リスト名を変更:', (name) => {
+                openDialog('prompt', t('rename'), t('renamePrompt'), (name) => {
                     if (name && name.trim()) setLists(prev => prev.map(l => l.id === list.id ? { ...l, name: name.trim() } : l));
                 }, list.name);
             };
             const editListDescription = (target) => {
                 const list = target && target.id ? target : activeList;
                 if (!list) return;
-                openDialog('prompt', '説明文の編集', 'リストの説明文を入力してください:', (desc) => {
+                openDialog('prompt', t('editDescription'), t('editDescPrompt'), (desc) => {
                     setLists(prev => prev.map(l => l.id === list.id ? { ...l, description: desc.trim() } : l));
                 }, list.description || "");
             };
-            const deleteList = (target) => { const list = target && target.id ? target : activeList; if (!list) return; openDialog('confirm', 'リスト削除', `リスト「${list.name}」を削除しますか？`, () => { setLists(prev => prev.filter(l => l.id !== list.id)); if (activeListId === list.id) setActiveListId(null); addToast("リストを削除しました", 'success'); }); };
+            const deleteList = (target) => { const list = target && target.id ? target : activeList; if (!list) return; openDialog('confirm', t('deleteListTitle'), t('deleteListConfirm', list.name), () => { setLists(prev => prev.filter(l => l.id !== list.id)); if (activeListId === list.id) setActiveListId(null); addToast(t('listDeleted'), 'success'); }); };
 
             // PRO版機能チェック
             const isPro = () => {
@@ -1651,24 +2040,24 @@
 
             const handleSavePng = async () => {
                 if (!isPro()) {
-                    addToast('PNG出力はPRO版の機能です', 'error');
+                    addToast(t('pngExportPro'), 'error');
                     return;
                 }
                 const target = document.getElementById('dashboard-container');
                 if (!target) return;
-                const toastId = addToast('画像を生成中...', 'loading');
+                const toastId = addToast(t('generatingImage'), 'loading');
                 try {
                     const { offsetHeight } = target;
                     const exportWidth = 1280;
                     const dataUrl = await domtoimage.toPng(target, { bgcolor: '#020617', width: exportWidth + 80, height: offsetHeight + 80, style: { padding: '40px', boxSizing: 'border-box', margin: 0, transform: 'none', width: `${exportWidth}px`, maxWidth: 'none' }, filter: (node) => !node.classList?.contains('no-capture') });
                     const link = document.createElement('a'); link.download = `steamlytic_dashboard_${new Date().toISOString().slice(0, 10)}.png`; link.href = dataUrl; link.click();
-                    removeToast(toastId); addToast('画像を保存しました', 'success');
-                } catch (e) { console.error("PNG generation failed", e); removeToast(toastId); addToast("PNG保存に失敗しました", 'error'); }
+                    removeToast(toastId); addToast(t('imageSaved'), 'success');
+                } catch (e) { console.error("PNG generation failed", e); removeToast(toastId); addToast(t('imageSaveFailed'), 'error'); }
             };
 
             const handleExportCsv = () => {
                 if (!isPro()) {
-                    addToast('CSV出力はPRO版の機能です', 'error');
+                    addToast(t('csvExportPro'), 'error');
                     return;
                 }
                 if (!activeList || sortedGames.length === 0) return;
@@ -1707,7 +2096,7 @@
                             <GameSection
                                 key="master-pool"
                                 sectionId="s-all"
-                                title="プールリスト"
+                                title={t('poolList')}
                                 games={allGames}
                                 viewMode={viewMode}
                                 onNavigate={navigate}
@@ -1736,7 +2125,7 @@
                 }).filter(Boolean);
                 const allIds = new Set(lists.flatMap(l => l.gameIds));
                 let uncat = filterBySearch(recalculatedGames.filter(g => !allIds.has(g.id)));
-                const uncatData = uncat.length > 0 ? { key: 'uncategorized', title: '未分類', games: sortGames(uncat) } : null;
+                const uncatData = uncat.length > 0 ? { key: 'uncategorized', title: t('uncategorized'), games: sortGames(uncat) } : null;
                 let sections = [];
                 if (sectionFilter === 'uncategorized') { if (uncatData) sections.push(uncatData); }
                 else { const t = listSections.find(s => s.key === sectionFilter); if (t) sections.push(t); }
@@ -1744,7 +2133,7 @@
                     <div className="space-y-4">
                                 {sectionFilter !== 'ALL' && (
                                     <div className="flex flex-wrap gap-2 mb-8">
-                                        <button onClick={() => setSectionFilter('ALL')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all border ${sectionFilter === 'ALL' ? 'bg-blue-600 border-blue-500 text-white shadow-md' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>プロジェクト一覧へ戻る</button>
+                                        <button onClick={() => setSectionFilter('ALL')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all border ${sectionFilter === 'ALL' ? 'bg-blue-600 border-blue-500 text-white shadow-md' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{t('backToProjectList')}</button>
                                     </div>
                                 )}
                                 {sections.map(s => (<GameSection key={s.key} sectionId={`s-${s.key}`} title={s.title} games={s.games} viewMode={viewMode} onNavigate={navigate} onSort={requestSort} sortConfig={sortConfig} SortIcon={SortIcon} onOpenListModal={openListModal} onDelete={handleDeleteGame} onRemove={removeFromCurrentList} activeListId={activeListId} openHelp={handleOpenHelp} lastUpdated={s.lastUpdated} onSelectList={null} search={search} setSearch={setSearch} />))}
@@ -1813,7 +2202,7 @@
                                                                  </div>
                                                              <div className="mt-1">
                                                                  <p className="text-slate-500 text-sm font-medium select-none">
-                                                                     {activeList.description || "この分析リストに登録されたタイトルの詳細統計と市場分布"}
+                                                                     {activeList.description || t('listDesc')}
                                                                  </p>
                                                              </div>
                                                         </div>
@@ -1833,17 +2222,17 @@
                                                                 </button>
                                                                 <div className="absolute right-0 top-full mt-1 w-44 py-1.5 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl opacity-0 invisible transition-all z-50 overflow-hidden shadow-black/50">
                                                                     <button onClick={() => renameList(activeList)} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-                                                                        <Icons.Edit3 className="w-3.5 h-3.5" /> 名前を変更
+                                                                        <Icons.Edit3 className="w-3.5 h-3.5" /> {t('rename')}
                                                                     </button>
                                                                     <button onClick={() => editListDescription(activeList)} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-                                                                        <Icons.FileText className="w-3.5 h-3.5" /> 説明を編集
+                                                                        <Icons.FileText className="w-3.5 h-3.5" /> {t('editDescription')}
                                                                     </button>
                                                                     <div className="h-px bg-slate-800 mx-3 my-1"></div>
                                                                     <button onClick={handleSavePng} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-blue-400 hover:bg-blue-900/20 hover:text-blue-300 transition-colors">
-                                                        <Icons.Camera className="w-3.5 h-3.5" /> PNG出力
+                                                        <Icons.Camera className="w-3.5 h-3.5" /> {t('pngExport')}
                                                     </button>
                                                                     <button onClick={() => deleteList(activeList)} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-red-500/70 hover:bg-red-500/10 hover:text-red-400 transition-colors">
-                                                                        <Icons.Trash2 className="w-3.5 h-3.5" /> リストを削除
+                                                                        <Icons.Trash2 className="w-3.5 h-3.5" /> {t('deleteListTitle')}
                                                                     </button>
                                                                 </div>
 
@@ -1855,25 +2244,25 @@
                                                     <div className="space-y-4">
                                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                                             <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
-                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">対象タイトル</div>
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('targetTitles')}</div>
                                                                 <div className="text-xl font-black text-white">{sortedGames.length}</div>
                                                             </div>
                                                             <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
-                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">平均レビュー</div>
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('avgReviews')}</div>
                                                                 <div className="text-xl font-black text-blue-400 font-mono whitespace-nowrap">{formatNumber(Math.round(stats.revs))}</div>
                                                             </div>
                                                             <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
-                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">平均スコア</div>
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('avgScore')}</div>
                                                                 <div className="text-xl font-black text-yellow-400 font-mono whitespace-nowrap">{Math.round(stats.score)}%</div>
                                                             </div>
                                                             <div className="bg-slate-850/50 border border-slate-800 px-5 py-4 rounded-2xl">
-                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">平均単価</div>
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('avgPrice')}</div>
                                                                 <div className="text-xl font-black text-slate-200 font-mono whitespace-nowrap">{formatYen(stats.avg)}</div>
                                                             </div>
                                                         </div>
                                                         <div className="bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20 px-8 py-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                             <div>
-                                                                <div className="text-[10px] font-bold text-green-500 uppercase tracking-widest mb-1 flex items-center gap-2"><Icons.TrendingUp className="w-3.5 h-3.5" /> 平均推定収益</div>
+                                                                <div className="text-[10px] font-bold text-green-500 uppercase tracking-widest mb-1 flex items-center gap-2"><Icons.TrendingUp className="w-3.5 h-3.5" /> {t('avgEstRevenue')}</div>
                                                                  <div className="text-4xl font-black text-green-400 font-mono tracking-tighter">{formatYen(stats.rev)}</div>
                                                              </div>
                                                         </div>
@@ -1881,7 +2270,7 @@
                                                 </div>
                                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50">
                                                     <div>
-                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Calendar className="w-3.5 h-3.5" /> リリース年分布</h4>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Calendar className="w-3.5 h-3.5" /> {t('releaseYearDist')}</h4>
                                                         <div className="h-32">
                                                             <ResponsiveContainer width="100%" height="100%">
                                                                 <BarChart data={releaseYearStatsForList.slice(0, 10).reverse()}>
@@ -1894,7 +2283,7 @@
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Hash className="w-3.5 h-3.5" /> 人気タグ構成</h4>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Hash className="w-3.5 h-3.5" /> {t('popularTagComp')}</h4>
                                                         <div className="h-32">
                                                             <ResponsiveContainer width="100%" height="100%">
                                                                 <BarChart data={tagAnalytics.slice(0, 5)} layout="vertical" margin={{ left: 10, right: 30 }}>
@@ -1912,19 +2301,19 @@
                                                     <div className="flex items-center justify-between mb-6">
                                                         <h3 className="text-lg font-black text-white flex items-center gap-3">
                                                             <div className="p-2 bg-blue-500/10 rounded-lg"><Icons.Activity className="text-blue-500 w-5 h-5" /></div>
-                                                            市場機会分析 (Blue Ocean Map)
+                                                            {t('blueOceanMap')}
                                                         </h3>
                                                         <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                                            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> タグ分布</div>
+                                                            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> {t('tagDist')}</div>
                                                         </div>
                                                     </div>
                                                     <div className="h-96">
                                                         <ResponsiveContainer width="100%" height="100%">
                                                             <ScatterChart margin={{ top: 20, right: 40, bottom: 40, left: 20 }}>
                                                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                                                <XAxis type="number" dataKey="count" name="競合数" stroke="#475569" fontSize={11} label={{ value: '競合タイトル数', position: 'insideBottom', offset: -20, fill: '#475569', fontSize: 11, fontWeight: 'bold' }} />
-                                                                <YAxis type="number" dataKey="avgRev" name="平均収益" stroke="#475569" fontSize={11} tickFormatter={(v) => `¥${(v / 1000000).toFixed(0)}M`} width={80} label={{ value: '平均推定収益 (Million Yen)', angle: -90, position: 'insideLeft', offset: -10, fill: '#475569', fontSize: 11, fontWeight: 'bold' }} />
-                                                                <ZAxis type="number" dataKey="z" range={[100, 800]} name="スコア" />
+                                                                <XAxis type="number" dataKey="count" name={t('competitors')} stroke="#475569" fontSize={11} label={{ value: t('competitors'), position: 'insideBottom', offset: -20, fill: '#475569', fontSize: 11, fontWeight: 'bold' }} />
+                                                                <YAxis type="number" dataKey="avgRev" name={t('avgRevenueLabel')} stroke="#475569" fontSize={11} tickFormatter={(v) => `¥${(v / 1000000).toFixed(0)}M`} width={80} label={{ value: t('avgRevenue'), angle: -90, position: 'insideLeft', offset: -10, fill: '#475569', fontSize: 11, fontWeight: 'bold' }} />
+                                                                <ZAxis type="number" dataKey="z" range={[100, 800]} name={t('score')} />
                                                                 <Tooltip
                                                                     cursor={false}
                                                                     content={({ active, payload }) => {
@@ -1934,10 +2323,10 @@
                                                                                 <div className="bg-slate-950/90 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl text-xs text-white">
                                                                                     <p className="text-blue-400 font-extrabold text-sm mb-2 border-b border-slate-800 pb-2">{data.name}</p>
                                                                                     <div className="space-y-1.5 font-medium">
-                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">平均収益:</span><span className="text-green-400 font-bold font-mono">{formatYen(data.avgRev)}</span></div>
-                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">平均レビュー:</span><span className="text-blue-400 font-bold font-mono">{formatNumber(Math.round(data.avgReviews))}</span></div>
-                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">平均評価:</span><span className="text-yellow-400 font-bold font-mono">{data.avgScore}%</span></div>
-                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">競合タイトル数:</span><span className="text-white font-bold font-mono">{data.count}</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">{t('avgRevenueLabel')}:</span><span className="text-green-400 font-bold font-mono">{formatYen(data.avgRev)}</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">{t('avgReviews')}:</span><span className="text-blue-400 font-bold font-mono">{formatNumber(Math.round(data.avgReviews))}</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">{t('avgScore')}:</span><span className="text-yellow-400 font-bold font-mono">{data.avgScore}%</span></div>
+                                                                                        <div className="flex justify-between gap-8"><span className="text-slate-400">{t('competitors')}:</span><span className="text-white font-bold font-mono">{data.count}</span></div>
                                                                                     </div>
                                                                                 </div>
                                                                             );
@@ -1984,16 +2373,16 @@
                                             <div className="relative z-10 space-y-8">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                                     <div>
-                                                        <h2 className="text-3xl font-black text-white mb-2 flex items-center gap-3"><Icons.Database className="w-8 h-8 text-blue-500" /> すべてのデータ</h2>
-                                                        <p className="text-slate-500 text-sm font-medium">登録済み全データの俯瞰と分析リストの統合管理ハブ</p>
+                                                        <h2 className="text-3xl font-black text-white mb-2 flex items-center gap-3"><Icons.Database className="w-8 h-8 text-blue-500" /> {t('allData')}</h2>
+                                                        <p className="text-slate-500 text-sm font-medium">{t('allDataDesc')}</p>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="bg-slate-850/50 border border-slate-800 px-5 py-3 rounded-2xl">
-                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">登録タイトル</div>
+                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('registeredTitles')}</div>
                                                             <div className="text-xl font-black text-white">{games.length}</div>
                                                         </div>
                                                         <div className="bg-slate-850/50 border border-slate-800 px-5 py-3 rounded-2xl">
-                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">分析リスト</div>
+                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('analysisLists')}</div>
                                                             <div className="text-xl font-black text-blue-400">{lists.length}</div>
                                                         </div>
                                                     </div>
@@ -2001,7 +2390,7 @@
 
                                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t border-slate-800/50">
                                                     <div>
-                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Calendar className="w-3.5 h-3.5" /> リリース年統計 (直近)</h4>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Calendar className="w-3.5 h-3.5" /> {t('releaseYearStats')}</h4>
                                                         <div className="h-28">
                                                             <ResponsiveContainer width="100%" height="100%">
                                                                 <BarChart data={releaseYearStats.slice(0, 10).reverse()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -2018,7 +2407,7 @@
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Hash className="w-3.5 h-3.5" /> 人気タグ構成 (全体)</h4>
+                                                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2"><Icons.Hash className="w-3.5 h-3.5" /> {t('popularTags')}</h4>
                                                         <div className="h-28">
                                                             <ResponsiveContainer width="100%" height="100%">
                                                                 <BarChart data={tagAnalytics.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
@@ -2049,7 +2438,7 @@
                         {view === 'detail' && selectedGame && (
                             <div className="animate-fade-in pb-20">
                                 <div className="flex items-center justify-between mb-6">
-                                    <button onClick={() => navigate('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800 rounded-lg"><Icons.ArrowRight className="w-4 h-4 rotate-180" /> 戻る</button>
+                                    <button onClick={() => navigate('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800 rounded-lg"><Icons.ArrowRight className="w-4 h-4 rotate-180" /> {t('back')}</button>
                                 </div>
 
                                 <div className="mb-6"></div>
@@ -2064,20 +2453,20 @@
                                             <a href={`https://steamdb.info/app/${selectedGame.id}`} target="_blank" className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl text-sm font-bold transition-all border border-slate-700 text-white text-center"><Icons.Database className="w-4 h-4" /> SteamDB</a>
                                         </div>
                                         <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 shadow-inner space-y-4 mt-auto">
-                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Info className="w-3.5 h-3.5" /> 基本情報</h4>
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Info className="w-3.5 h-3.5" /> {t('basicInfo')}</h4>
                                             <div className="space-y-3 text-sm">
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">開発元</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.developer}</span></div>
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">パブリッシャー</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.publisher}</span></div>
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">リリース日</span><span className="text-white font-medium font-mono">{selectedGame.releaseDate}</span></div>
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">定価</span><span className="text-white font-medium font-mono">{formatYen(selectedGame.price)}</span></div>
-                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">ジャンル</span><div className="flex flex-wrap gap-1.5">{selectedGame.genres.map(t => <span key={t} className="px-2 py-0.5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] text-blue-400 font-bold">{t}</span>)}</div></div>
-                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">ユーザータグ</span><div className="flex flex-wrap gap-1.5">{selectedGame.userTags.map(t => <span key={t} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] text-slate-300">{t}</span>)}</div></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('developer')}</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.developer}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('publisher')}</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.publisher}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('releaseDate')}</span><span className="text-white font-medium font-mono">{selectedGame.releaseDate}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('listPrice')}</span><span className="text-white font-medium font-mono">{formatYen(selectedGame.price)}</span></div>
+                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">{t('genres')}</span><div className="flex flex-wrap gap-1.5">{selectedGame.genres.map(g => <span key={g} className="px-2 py-0.5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] text-blue-400 font-bold">{g}</span>)}</div></div>
+                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">{t('userTags')}</span><div className="flex flex-wrap gap-1.5">{selectedGame.userTags.map(tag => <span key={tag} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] text-slate-300">{tag}</span>)}</div></div>
                                             </div>
                                         </div>
 
                                         {similarTitles.length > 0 ? (
                                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.LayoutGrid className="w-3.5 h-3.5" /> 類似タイトル</h4>
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.LayoutGrid className="w-3.5 h-3.5" /> {t('similarTitles')}</h4>
                                                 <div className="space-y-3">
                                                     {similarTitles.map(g => (
                                                         <div key={g.id} onClick={() => navigate('detail', g)} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition-all border border-transparent hover:border-slate-700 group">
@@ -2093,8 +2482,8 @@
                                         ) : (
                                             <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-2xl p-6 text-center">
                                                 <Icons.LayoutGrid className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-                                                <p className="text-sm text-slate-500 font-medium">類似タイトルが見つかりませんでした</p>
-                                                <p className="text-xs text-slate-600 mt-1">より多くのゲームを登録すると、類似したタイトルを発見できます</p>
+                                                <p className="text-sm text-slate-500 font-medium">{t('noSimilarTitles')}</p>
+                                                <p className="text-xs text-slate-600 mt-1">{t('noSimilarTitlesHint')}</p>
                                             </div>
                                         )}
                                     </div>
@@ -2123,11 +2512,11 @@
 
                                         <div className="grid grid-cols-2 gap-4 mt-auto">
                                             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl group hover:border-blue-500/30 transition-all">
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">総レビュー</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">{t('totalReviews')}</div>
                                                 <div className="text-xl md:text-2xl font-black text-blue-400 font-mono truncate">{formatNumber(selectedGame.reviews)}</div>
                                             </div>
                                             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl group hover:border-blue-500/30 transition-all">
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">スコア</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">{t('score')}</div>
                                                 <div className="flex items-center gap-2">
                                                     <div className={`text-2xl font-black ${calculateReviewColor(selectedGame.reviewScore)}`}>{selectedGame.reviewScore}%</div>
                                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold border border-opacity-30 ${selectedGame.reviewScore >= 80 ? 'bg-green-500/20 text-green-400 border-green-500' : 'bg-slate-700 text-slate-400 border-slate-600'}`}>{getReviewText(selectedGame.reviewScore)}</span>
@@ -2136,7 +2525,7 @@
                                         </div>
 
                                         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center justify-between">トレンド分析 (推定) <span className="bg-slate-800 text-[9px] px-2 py-0.5 rounded text-slate-400">LIVE DATA NOT AVAILABLE</span></h4>
+                                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center justify-between">{t('trendAnalysis')} <span className="bg-slate-800 text-[9px] px-2 py-0.5 rounded text-slate-400">LIVE DATA NOT AVAILABLE</span></h4>
                                             <div className="h-56">
                                                 <ResponsiveContainer width="100%" height="100%">
                                             <ComposedChart data={selectedGame.history && selectedGame.history.length > 0 ? selectedGame.history : Array.from({ length: 12 }, (_, i) => ({ name: `${i + 1}月`, sales: Math.floor(Math.random() * 500) + 100, players: Math.floor(Math.random() * 300) + 50 }))}>
@@ -2161,7 +2550,7 @@
 
                                         {selectedGame.screenshots && selectedGame.screenshots.length > 0 && (
                                             <div className="space-y-4">
-                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Image className="w-3.5 h-3.5" /> スクリーンショット</h4>
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Image className="w-3.5 h-3.5" /> {t('screenshots')}</h4>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                                     {selectedGame.screenshots.map((s, idx) => (
                                                         <div key={idx} onClick={() => setImageViewSrc(s.path_full)} className="aspect-video rounded-lg overflow-hidden border border-slate-800 cursor-pointer hover:border-blue-500 transition-all group relative">

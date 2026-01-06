@@ -236,6 +236,11 @@ const Lang = {
     });
     // ホームページのUIを更新
     this.updateHomeUI();
+    // Steamlytic iframeに言語変更を通知
+    const steamlyticFrame = document.getElementById('steamlytic-iframe');
+    if (steamlyticFrame && steamlyticFrame.contentWindow) {
+      steamlyticFrame.contentWindow.postMessage({ type: 'setLanguage', lang }, '*');
+    }
   },
 
   // 初期化（localStorageから読み込み）
@@ -4480,7 +4485,7 @@ const Steamlytic = {
       <div class="steamlytic-container">
         <iframe
           id="steamlytic-iframe"
-          src="/steamlytic_v8.html?embed=true"
+          src="/steamlytic_v8.html?embed=true&lang=${Lang.current}"
           class="steamlytic-iframe"
           frameborder="0"
           allowfullscreen>

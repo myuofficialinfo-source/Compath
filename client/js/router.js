@@ -109,8 +109,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Blue Ocean Scout
+  const blueOceanBtn = document.getElementById('btn-blue-ocean');
+  if (blueOceanBtn) {
+    blueOceanBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigateTo('blue-ocean');
+    });
+  }
+
   // Coming Soon ツール（クリック無効）
-  // const blueOceanBtn = document.getElementById('btn-blue-ocean');
   // const launchCommanderBtn = document.getElementById('btn-launch-commander');
   // const visualTrendBtn = document.getElementById('btn-visual-trend');
 
