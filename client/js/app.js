@@ -2588,7 +2588,7 @@ const BlueOcean = {
         <div class="competitors-section">
           <h3 class="competitors-title">
             <span>👑</span>
-            ${isJa ? '競合「四天王」' : 'Top Competitors'}
+            ${isJa ? '競合' : 'Competitors'}
           </h3>
           <p style="color: var(--text-secondary); padding: 20px;">${isJa ? '競合データが見つかりませんでした。' : 'No competitor data found.'}</p>
         </div>
@@ -2615,7 +2615,7 @@ const BlueOcean = {
       <div class="competitors-section">
         <h3 class="competitors-title">
           <span>👑</span>
-          ${isJa ? '競合「四天王」' : 'Top Competitors'}
+          ${isJa ? '競合' : 'Competitors'}
         </h3>
         ${competitorCards}
       </div>
