@@ -530,8 +530,17 @@
             }
         });
 
+        // t() function - uses currentLang which is updated by React state callback
         const t = (key, ...args) => {
             const msgs = i18n[currentLang] || i18n.ja;
+            const val = msgs[key];
+            if (typeof val === 'function') return val(...args);
+            return val || key;
+        };
+
+        // Create t function with specific language - for React components to ensure re-render
+        const createT = (lang) => (key, ...args) => {
+            const msgs = i18n[lang] || i18n.ja;
             const val = msgs[key];
             if (typeof val === 'function') return val(...args);
             return val || key;
@@ -1171,7 +1180,7 @@
         const Header = ({
             setView, view, onUpdateClick, isUpdating, activeList, activeListId, lists, setActiveListId,
             canUpdate, onAddGame, onOpenConfig, onOpenCalculator, onDirectAdd, addedGameIds,
-            createList, renameList, deleteList, viewMode, setViewMode
+            createList, renameList, deleteList, viewMode, setViewMode, lang, tl
         }) => {
             return (
                 <header className="bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-50 py-3 shadow-2xl">
@@ -1187,9 +1196,9 @@
                                 </div>
                                 <div className="flex flex-col">
                                     <h1 className="text-lg font-black tracking-tight text-white leading-none">
-                                        {currentLang === 'ja' ? <>STEAM<span className="text-blue-500">分析マン</span></> : <>STEAM<span className="text-blue-500"> Analyzer</span></>}
+                                        {lang === 'ja' ? <>STEAM<span className="text-blue-500">分析マン</span></> : <>STEAM<span className="text-blue-500"> Analyzer</span></>}
                                     </h1>
-                                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">{t('brandSub')}</span>
+                                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">{tl('brandSub')}</span>
                                 </div>
                             </div>
                         </div>
@@ -1200,7 +1209,7 @@
                                 <button
                                     onClick={() => { setActiveListId(null); setView('dashboard'); }}
                                     className={`p-2 rounded-xl transition-all ${activeListId === null ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`}
-                                    title={t('allGames')}
+                                    title={tl('allGames')}
                                 >
                                     <Icons.Home className="w-4 h-4" />
                                 </button>
@@ -1210,13 +1219,13 @@
                                         onChange={(e) => { setActiveListId(e.target.value || null); setView('dashboard'); }}
                                         className="w-full appearance-none bg-transparent text-white pl-3 pr-8 py-1.5 rounded-lg font-bold text-sm cursor-pointer outline-none"
                                     >
-                                        <option value="" className="bg-slate-900 text-white text-sm">{t('showAll')}</option>
+                                        <option value="" className="bg-slate-900 text-white text-sm">{tl('showAll')}</option>
                                         {lists.map(l => <option key={l.id} value={l.id} className="bg-slate-900 text-white text-sm">{l.name}</option>)}
                                     </select>
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><Icons.ChevronDown className="w-3.5 h-3.5" /></div>
                                 </div>
                                 <div className="flex items-center gap-0.5 border-l border-slate-700 ml-1 pl-1">
-                                    <button onClick={createList} className="p-2 text-slate-500 hover:text-blue-400 transition-colors" title={t('newList')}><Icons.Plus className="w-4 h-4" /></button>
+                                    <button onClick={createList} className="p-2 text-slate-500 hover:text-blue-400 transition-colors" title={tl('newList')}><Icons.Plus className="w-4 h-4" /></button>
                                 </div>
                             </div>
                         </div>
@@ -1231,7 +1240,7 @@
                                 {isUpdating && (
                                     <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
                                         <Icons.RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-                                        <span className="text-[10px] font-bold text-blue-400">{t('updating')}</span>
+                                        <span className="text-[10px] font-bold text-blue-400">{tl('updating')}</span>
                                     </div>
                                 )}
 
@@ -1241,31 +1250,31 @@
                                     <button
                                         onClick={() => setViewMode('table')}
                                         className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                                        title={t('tableView')}
+                                        title={tl('tableView')}
                                     >
                                         <Icons.Table className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => setViewMode('card')}
                                         className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                                        title={t('cardView')}
+                                        title={tl('cardView')}
                                     >
                                         <Icons.LayoutGrid className="w-4 h-4" />
                                     </button>
                                 </div>
 
-                                <button onClick={() => setView('calculator')} className={`p-2 transition-all ${view === 'calculator' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`} title={t('revenueSimulator')}><Icons.Calculator className="w-4 h-4" /></button>
+                                <button onClick={() => setView('calculator')} className={`p-2 transition-all ${view === 'calculator' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`} title={tl('revenueSimulator')}><Icons.Calculator className="w-4 h-4" /></button>
                                 <button
                                     onClick={() => setView('compare')}
                                     className={`p-2 transition-all ${view === 'compare' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
-                                    title={t('compareAnalysis')}
+                                    title={tl('compareAnalysis')}
                                 >
                                     <Icons.Scale className="w-4 h-4" />
                                 </button>
 
                                 <div className="h-6 w-px bg-slate-800 mx-1 hidden md:block"></div>
 
-                                <button onClick={onOpenConfig} className="p-2 text-slate-500 hover:text-white transition-colors hidden sm:block" title={t('settings')}><Icons.Settings className="w-4 h-4" /></button>
+                                <button onClick={onOpenConfig} className="p-2 text-slate-500 hover:text-white transition-colors hidden sm:block" title={tl('settings')}><Icons.Settings className="w-4 h-4" /></button>
                             </div>
                         </div>
                     </div>
@@ -1633,6 +1642,9 @@
                 };
                 return () => { setLangCallback = null; };
             }, []);
+
+            // Memoized translation function that depends on lang state
+            const tl = useMemo(() => createT(lang), [lang]);
 
             const [view, setView] = useState('dashboard');
             const [viewMode, setViewMode] = useState('table');
@@ -2189,6 +2201,8 @@
                             deleteList={deleteList}
                             viewMode={viewMode}
                             setViewMode={setViewMode}
+                            lang={lang}
+                            tl={tl}
                         />
                     )}
                     <main className="max-w-7xl mx-auto w-full px-4 md:px-8 py-8 animate-fade-in min-h-[600px] flex flex-col" id="dashboard-container">
@@ -2453,7 +2467,7 @@
                         {view === 'detail' && selectedGame && (
                             <div className="animate-fade-in pb-20">
                                 <div className="flex items-center justify-between mb-6">
-                                    <button onClick={() => navigate('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800 rounded-lg"><Icons.ArrowRight className="w-4 h-4 rotate-180" /> {t('back')}</button>
+                                    <button onClick={() => navigate('dashboard')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-slate-800 rounded-lg"><Icons.ArrowRight className="w-4 h-4 rotate-180" /> {tl('back')}</button>
                                 </div>
 
                                 <div className="mb-6"></div>
@@ -2468,20 +2482,20 @@
                                             <a href={`https://steamdb.info/app/${selectedGame.id}`} target="_blank" className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl text-sm font-bold transition-all border border-slate-700 text-white text-center"><Icons.Database className="w-4 h-4" /> SteamDB</a>
                                         </div>
                                         <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 shadow-inner space-y-4 mt-auto">
-                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Info className="w-3.5 h-3.5" /> {t('basicInfo')}</h4>
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Info className="w-3.5 h-3.5" /> {tl('basicInfo')}</h4>
                                             <div className="space-y-3 text-sm">
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('developer')}</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.developer}</span></div>
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('publisher')}</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.publisher}</span></div>
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('releaseDate')}</span><span className="text-white font-medium font-mono">{selectedGame.releaseDate}</span></div>
-                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{t('listPrice')}</span><span className="text-white font-medium font-mono">{formatYen(selectedGame.price)}</span></div>
-                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">{t('genres')}</span><div className="flex flex-wrap gap-1.5">{selectedGame.genres.map(g => <span key={g} className="px-2 py-0.5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] text-blue-400 font-bold">{g}</span>)}</div></div>
-                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">{t('userTags')}</span><div className="flex flex-wrap gap-1.5">{selectedGame.userTags.map(tag => <span key={tag} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] text-slate-300">{tag}</span>)}</div></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{tl('developer')}</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.developer}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{tl('publisher')}</span><span className="text-white font-medium text-right truncate pl-4">{selectedGame.publisher}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{tl('releaseDate')}</span><span className="text-white font-medium font-mono">{selectedGame.releaseDate}</span></div>
+                                                <div className="flex justify-between border-b border-slate-800 pb-2"><span className="text-slate-400">{tl('listPrice')}</span><span className="text-white font-medium font-mono">{formatYen(selectedGame.price)}</span></div>
+                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">{tl('genres')}</span><div className="flex flex-wrap gap-1.5">{selectedGame.genres.map(g => <span key={g} className="px-2 py-0.5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] text-blue-400 font-bold">{g}</span>)}</div></div>
+                                                <div><span className="text-slate-400 block mb-2 font-bold text-[10px] uppercase">{tl('userTags')}</span><div className="flex flex-wrap gap-1.5">{selectedGame.userTags.map(tag => <span key={tag} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] text-slate-300">{tag}</span>)}</div></div>
                                             </div>
                                         </div>
 
                                         {similarTitles.length > 0 ? (
                                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.LayoutGrid className="w-3.5 h-3.5" /> {t('similarTitles')}</h4>
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.LayoutGrid className="w-3.5 h-3.5" /> {tl('similarTitles')}</h4>
                                                 <div className="space-y-3">
                                                     {similarTitles.map(g => (
                                                         <div key={g.id} onClick={() => navigate('detail', g)} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition-all border border-transparent hover:border-slate-700 group">
@@ -2497,8 +2511,8 @@
                                         ) : (
                                             <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-2xl p-6 text-center">
                                                 <Icons.LayoutGrid className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-                                                <p className="text-sm text-slate-500 font-medium">{t('noSimilarTitles')}</p>
-                                                <p className="text-xs text-slate-600 mt-1">{t('noSimilarTitlesHint')}</p>
+                                                <p className="text-sm text-slate-500 font-medium">{tl('noSimilarTitles')}</p>
+                                                <p className="text-xs text-slate-600 mt-1">{tl('noSimilarTitlesHint')}</p>
                                             </div>
                                         )}
                                     </div>
@@ -2527,11 +2541,11 @@
 
                                         <div className="grid grid-cols-2 gap-4 mt-auto">
                                             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl group hover:border-blue-500/30 transition-all">
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">{t('totalReviews')}</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">{tl('totalReviews')}</div>
                                                 <div className="text-xl md:text-2xl font-black text-blue-400 font-mono truncate">{formatNumber(selectedGame.reviews)}</div>
                                             </div>
                                             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl group hover:border-blue-500/30 transition-all">
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">{t('score')}</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">{tl('score')}</div>
                                                 <div className="flex items-center gap-2">
                                                     <div className={`text-2xl font-black ${calculateReviewColor(selectedGame.reviewScore)}`}>{selectedGame.reviewScore}%</div>
                                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold border border-opacity-30 ${selectedGame.reviewScore >= 80 ? 'bg-green-500/20 text-green-400 border-green-500' : 'bg-slate-700 text-slate-400 border-slate-600'}`}>{getReviewText(selectedGame.reviewScore)}</span>
@@ -2540,7 +2554,7 @@
                                         </div>
 
                                         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center justify-between">{t('trendAnalysis')} <span className="bg-slate-800 text-[9px] px-2 py-0.5 rounded text-slate-400">LIVE DATA NOT AVAILABLE</span></h4>
+                                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center justify-between">{tl('trendAnalysis')} <span className="bg-slate-800 text-[9px] px-2 py-0.5 rounded text-slate-400">LIVE DATA NOT AVAILABLE</span></h4>
                                             <div className="h-56">
                                                 <ResponsiveContainer width="100%" height="100%">
                                             <ComposedChart data={selectedGame.history && selectedGame.history.length > 0 ? selectedGame.history : Array.from({ length: 12 }, (_, i) => ({ name: `${i + 1}月`, sales: Math.floor(Math.random() * 500) + 100, players: Math.floor(Math.random() * 300) + 50 }))}>
@@ -2565,7 +2579,7 @@
 
                                         {selectedGame.screenshots && selectedGame.screenshots.length > 0 && (
                                             <div className="space-y-4">
-                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Image className="w-3.5 h-3.5" /> {t('screenshots')}</h4>
+                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Icons.Image className="w-3.5 h-3.5" /> {tl('screenshots')}</h4>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                                     {selectedGame.screenshots.map((s, idx) => (
                                                         <div key={idx} onClick={() => setImageViewSrc(s.path_full)} className="aspect-video rounded-lg overflow-hidden border border-slate-800 cursor-pointer hover:border-blue-500 transition-all group relative">

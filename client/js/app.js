@@ -530,6 +530,8 @@ const UI = {
           LaunchCommander.init();
         } else if (AppState.currentPage === 'visual-trend') {
           VisualTrend.init();
+        } else if (AppState.currentPage === 'steamlytic') {
+          Steamlytic.init();
         }
       });
     });
@@ -4523,6 +4525,9 @@ const Steamlytic = {
         }
       });
     }
+
+    // 言語切り替え
+    UI.bindLanguageSwitcher();
 
     // Listen for view changes from iframe
     window.addEventListener('message', (event) => {
