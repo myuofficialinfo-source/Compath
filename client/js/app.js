@@ -1824,7 +1824,8 @@ const StoreDoctor = {
         `;
       });
 
-      return html || '<p class="no-data">診断データがありません</p>';
+      const isJa = Lang.current === 'ja';
+      return html || `<p class="no-data">${isJa ? '診断データがありません' : 'No diagnosis data available'}</p>`;
     };
 
     const getScoreClass = (score) => {
@@ -1833,15 +1834,18 @@ const StoreDoctor = {
       return 'bad';
     };
 
+    const isJa = Lang.current === 'ja';
+    const pt = isJa ? '点' : 'pts';
+
     container.innerHTML = `
       <div class="diagnosis-cards">
         <div class="diagnosis-card">
           <div class="diagnosis-card-header">
             <h3 class="diagnosis-card-title">
-              <span>🏷️</span> タグ設定
+              <span>🏷️</span> ${isJa ? 'タグ設定' : 'Tags'}
             </h3>
             <span class="diagnosis-card-score ${getScoreClass(diagnoses.tags.score)}">
-              ${Math.round(diagnoses.tags.score * 0.4)} / 40点
+              ${Math.round(diagnoses.tags.score * 0.4)} / 40${pt}
             </span>
           </div>
           <div class="diagnosis-card-content">
@@ -1852,10 +1856,10 @@ const StoreDoctor = {
         <div class="diagnosis-card">
           <div class="diagnosis-card-header">
             <h3 class="diagnosis-card-title">
-              <span>🎬</span> ビジュアル
+              <span>🎬</span> ${isJa ? 'ビジュアル' : 'Visuals'}
             </h3>
             <span class="diagnosis-card-score ${getScoreClass(diagnoses.visuals.score)}">
-              ${Math.round(diagnoses.visuals.score * 0.3)} / 30点
+              ${Math.round(diagnoses.visuals.score * 0.3)} / 30${pt}
             </span>
           </div>
           <div class="diagnosis-card-content">
@@ -1866,10 +1870,10 @@ const StoreDoctor = {
         <div class="diagnosis-card">
           <div class="diagnosis-card-header">
             <h3 class="diagnosis-card-title">
-              <span>📝</span> テキスト情報
+              <span>📝</span> ${isJa ? 'テキスト情報' : 'Text Content'}
             </h3>
             <span class="diagnosis-card-score ${getScoreClass(diagnoses.text.score)}">
-              ${Math.round(diagnoses.text.score * 0.2)} / 20点
+              ${Math.round(diagnoses.text.score * 0.2)} / 20${pt}
             </span>
           </div>
           <div class="diagnosis-card-content">
@@ -1880,10 +1884,10 @@ const StoreDoctor = {
         <div class="diagnosis-card">
           <div class="diagnosis-card-header">
             <h3 class="diagnosis-card-title">
-              <span>🌐</span> 基本情報
+              <span>🌐</span> ${isJa ? '基本情報' : 'Basic Info'}
             </h3>
             <span class="diagnosis-card-score ${getScoreClass(diagnoses.basic.score)}">
-              ${Math.round(diagnoses.basic.score * 0.1)} / 10点
+              ${Math.round(diagnoses.basic.score * 0.1)} / 10${pt}
             </span>
           </div>
           <div class="diagnosis-card-content">
@@ -1896,6 +1900,7 @@ const StoreDoctor = {
 
   renderSuggestedTags(suggestedTags, currentTags) {
     const container = document.getElementById('suggested-tags');
+    const isJa = Lang.current === 'ja';
 
     const broadTags = ['Indie', 'Singleplayer', 'Action', 'Adventure', 'Casual'];
 
@@ -1907,24 +1912,24 @@ const StoreDoctor = {
       const isBroad = broadTags.some(b => tag.toLowerCase().includes(b.toLowerCase()));
       const isTop5 = index < 5;
       const className = isBroad && isTop5 ? 'current-tag broad' : 'current-tag';
-      const title = isTop5 ? '上位5タグ' : '';
+      const title = isTop5 ? (isJa ? '上位5タグ' : 'Top 5 tags') : '';
       return `<span class="${className}" title="${title}">${index + 1}. ${tag}</span>`;
     }).join('') : '';
 
     container.innerHTML = `
       <div class="suggested-tags-section">
         <h3 class="suggested-tags-title">
-          <span>💡</span> 追加を検討すべきタグ
+          <span>💡</span> ${isJa ? '追加を検討すべきタグ' : 'Suggested Tags to Add'}
         </h3>
         <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 0.9rem;">
-          クリックでクリップボードにコピー
+          ${isJa ? 'クリックでクリップボードにコピー' : 'Click to copy to clipboard'}
         </p>
         <div class="suggested-tags-list">
           ${tagsHtml}
         </div>
         ${currentTags.length > 0 ? `
           <div class="current-tags-section">
-            <p class="current-tags-title">現在設定されているタグ (${currentTags.length}個)</p>
+            <p class="current-tags-title">${isJa ? '現在設定されているタグ' : 'Current Tags'} (${currentTags.length}${isJa ? '個' : ''})</p>
             <div class="current-tags-list">
               ${currentTagsHtml}
             </div>
@@ -1935,8 +1940,9 @@ const StoreDoctor = {
   },
 
   copyTag(tag) {
+    const isJa = Lang.current === 'ja';
     navigator.clipboard.writeText(tag).then(() => {
-      UI.showToast(`"${tag}" をコピーしました`, 'success');
+      UI.showToast(isJa ? `"${tag}" をコピーしました` : `Copied "${tag}"`, 'success');
       // ボタンの見た目を変更
       const buttons = document.querySelectorAll('.suggested-tag');
       buttons.forEach(btn => {
