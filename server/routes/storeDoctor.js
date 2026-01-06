@@ -33,7 +33,7 @@ function extractAppId(url) {
  */
 router.post('/diagnose', async (req, res) => {
   try {
-    const { url } = req.body;
+    const { url, lang } = req.body;
 
     if (!url) {
       return res.status(400).json({ error: 'URLが必要です' });
@@ -44,9 +44,9 @@ router.post('/diagnose', async (req, res) => {
       return res.status(400).json({ error: '有効なSteam URLまたはAppIDを入力してください' });
     }
 
-    console.log(`診断開始: AppID ${appId}`);
+    console.log(`診断開始: AppID ${appId}, lang: ${lang || 'ja'}`);
 
-    const result = await storeDoctorService.diagnoseStore(appId);
+    const result = await storeDoctorService.diagnoseStore(appId, { lang: lang || 'ja' });
 
     res.json({
       success: true,

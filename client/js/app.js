@@ -1701,18 +1701,19 @@ const StoreDoctor = {
 
   async diagnose() {
     const url = document.getElementById('doctor-steam-url').value.trim();
+    const isJa = Lang.current === 'ja';
     if (!url) {
-      UI.showToast('URLを入力してください', 'error');
+      UI.showToast(isJa ? 'URLを入力してください' : 'Please enter a URL', 'error');
       return;
     }
 
     try {
-      UI.showLoading('ストアページを診断中...');
+      UI.showLoading(isJa ? 'ストアページを診断中...' : 'Diagnosing store page...');
 
       const response = await fetch('/api/store-doctor/diagnose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url, lang: Lang.current })
       });
 
       if (!response.ok) {
