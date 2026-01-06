@@ -503,6 +503,201 @@
   }
 }
 
+/* 判定理由セクション */
+.judgment-reasons {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.judgment-reasons-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.golden-zone-alert {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));
+  border: 1px solid #FF9800;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #FF9800;
+  text-align: center;
+}
+
+.score-calculation {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.score-formula {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.score-formula span {
+  font-size: 0.95rem;
+}
+
+.score-formula .base-score {
+  color: var(--text-muted);
+}
+
+.score-formula .operator {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.score-formula .weighted-sum {
+  color: var(--text-secondary);
+}
+
+.score-formula .final-score {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.score-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.score-breakdown-table th,
+.score-breakdown-table td {
+  padding: 8px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.score-breakdown-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+  background: var(--bg-primary);
+}
+
+.score-breakdown-table td:first-child {
+  text-align: left;
+}
+
+.threshold-reference {
+  margin-bottom: 20px;
+}
+
+.threshold-reference h4 {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.threshold-bars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.threshold-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.threshold-item.active {
+  opacity: 1;
+  border: 2px solid var(--accent-primary);
+  background: var(--bg-card);
+}
+
+.threshold-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.threshold-label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.threshold-range {
+  color: var(--text-muted);
+}
+
+.reasons-factors {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.reasons-list {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.reasons-list.positive {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.reasons-list.negative {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.reasons-list h4 {
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.reasons-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reasons-list li {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.5;
+}
+
+.reasons-list li:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .reasons-factors {
+    grid-template-columns: 1fr;
+  }
+
+  .threshold-bars {
+    flex-direction: column;
+  }
+
+  .threshold-item {
+    justify-content: flex-start;
+  }
+}
+
 /* 検索条件サマリー */
 .search-summary {
   background: var(--bg-card);

@@ -152,7 +152,8 @@ async function analyzeMarket(concept) {
         pitch: s.examplePitch || ''
       })),
       marketPosition: oceanResult.position,
-      oceanExplanation: oceanResult.explanation
+      oceanExplanation: oceanResult.explanation,
+      judgmentReasons: oceanResult.reasons
     };
 
   } catch (error) {
@@ -467,6 +468,9 @@ function determineOceanByScore(totalScore, scores) {
   // 黄金ゾーン: 競争係数1未満 かつ ヒット密度5%以上
   const isGoldenZone = scores.competition.value < 1 && scores.hitDensity.value >= 5;
 
+  // 判定理由を生成
+  const reasons = generateJudgmentReasons(scores, isGoldenZone);
+
   if (totalScore >= 85 || isGoldenZone) {
     result = {
       color: 'blue',
@@ -501,7 +505,73 @@ function determineOceanByScore(totalScore, scores) {
     };
   }
 
+  result.reasons = reasons;
   return result;
+}
+
+/**
+ * 判定理由を生成
+ */
+function generateJudgmentReasons(scores, isGoldenZone) {
+  const reasons = {
+    positive: [],
+    negative: [],
+    scoreBreakdown: {
+      competition: { score: scores.competition.score, weight: 30, contribution: Math.round((scores.competition.score - 50) * 0.30) },
+      hitDensity: { score: scores.hitDensity.score, weight: 30, contribution: Math.round((scores.hitDensity.score - 50) * 0.30) },
+      revenue: { score: scores.revenue.score, weight: 15, contribution: Math.round((scores.revenue.score - 50) * 0.15) },
+      niche: { score: scores.niche.score, weight: 10, contribution: Math.round((scores.niche.score - 50) * 0.10) },
+      synergy: { score: scores.synergy.score, weight: 5, contribution: Math.round((scores.synergy.score - 50) * 0.05) },
+      demand: { score: scores.demand.score, weight: 10, contribution: Math.round((scores.demand.score - 50) * 0.10) }
+    },
+    thresholds: {
+      blue: '85点以上',
+      bluePromising: '70-84点',
+      yellow: '55-69点',
+      red: '40-54点',
+      purple: '40点未満'
+    },
+    goldenZone: isGoldenZone ? '競争係数1未満 かつ ヒット密度5%以上 → 黄金ゾーン！' : null
+  };
+
+  // ポジティブ要因
+  if (scores.competition.score >= 80) {
+    reasons.positive.push(`競争係数が優秀（${scores.competition.value}）：1レビューを獲得するのに必要な競合が少ない`);
+  }
+  if (scores.hitDensity.score >= 80) {
+    reasons.positive.push(`ヒット密度が高い（${scores.hitDensity.value}%）：このジャンルはヒットが出やすい`);
+  }
+  if (scores.revenue.score >= 80) {
+    reasons.positive.push(`収益性が高い（平均${scores.revenue.value}レビュー）：市場で売れているゲームが多い`);
+  }
+  if (scores.niche.score >= 80) {
+    reasons.positive.push(`ニッチな市場（${scores.niche.value}本）：競合が少なく差別化しやすい`);
+  }
+  if (scores.synergy.score >= 80) {
+    reasons.positive.push(`タグの組み合わせが効果的（${scores.synergy.value}%に絞り込み）：独自のポジションを取れる`);
+  }
+  if (scores.demand.score >= 80) {
+    reasons.positive.push(`需要が確実（${scores.demand.value}本のヒット作）：この組み合わせで成功例がある`);
+  }
+
+  // ネガティブ要因
+  if (scores.competition.score <= 40) {
+    reasons.negative.push(`競争係数が悪い（${scores.competition.value}）：競合が多く埋もれやすい`);
+  }
+  if (scores.hitDensity.score <= 40) {
+    reasons.negative.push(`ヒット密度が低い（${scores.hitDensity.value}%）：このジャンルはヒットが出にくい`);
+  }
+  if (scores.revenue.score <= 40) {
+    reasons.negative.push(`収益性が低い（平均${scores.revenue.value}レビュー）：市場全体の売上が少ない`);
+  }
+  if (scores.niche.score <= 40) {
+    reasons.negative.push(`競合が多い市場（${scores.niche.value}本）：差別化が難しい`);
+  }
+  if (scores.demand.score <= 40) {
+    reasons.negative.push(`需要が不明（ヒット作${scores.demand.value}本）：成功例が少なくリスクが高い`);
+  }
+
+  return reasons;
 }
 
 /**

@@ -2213,6 +2213,7 @@ const BlueOcean = {
           </div>
           <div id="search-summary"></div>
           <div id="ocean-result"></div>
+          <div id="judgment-reasons"></div>
           <div id="market-stats"></div>
           <div id="market-map"></div>
           <div id="competitors-section"></div>
@@ -2374,6 +2375,7 @@ const BlueOcean = {
       // 検索条件サマリーを最上部に表示
       this.renderSearchSummary();
       this.renderOceanResult(oceanColor, totalScore, result.oceanExplanation);
+      this.renderJudgmentReasons(result.judgmentReasons, totalScore, oceanColor);
       this.renderMarketStats(result.stats);
       this.renderMarketMap(marketPos, oceanColor);
       this.renderSixAxisScores(sixAxisScores);
@@ -2421,6 +2423,124 @@ const BlueOcean = {
           ${tagNames.map(name => `<span class="summary-tag">${UI.escapeHtml(name)}</span>`).join('')}
         </div>
         ${freeText ? `<div class="search-summary-text">"${UI.escapeHtml(freeText)}"</div>` : ''}
+      </div>
+    `;
+  },
+
+  renderJudgmentReasons(reasons, totalScore, oceanColor) {
+    const container = document.getElementById('judgment-reasons');
+    if (!container || !reasons) return;
+
+    const isJa = Lang.current === 'ja';
+
+    // スコア閾値の説明
+    const thresholdLabels = {
+      blue: { label: isJa ? 'ブルーオーシャン' : 'Blue Ocean', range: '85+', color: '#2196F3' },
+      bluePromising: { label: isJa ? 'ブルー（有望）' : 'Blue (Promising)', range: '70-84', color: '#4CAF50' },
+      yellow: { label: isJa ? 'イエロー（要検討）' : 'Yellow (Needs Review)', range: '55-69', color: '#FF9800' },
+      red: { label: isJa ? 'レッド（厳しい）' : 'Red (Challenging)', range: '40-54', color: '#f44336' },
+      purple: { label: isJa ? 'パープル（需要不明）' : 'Purple (Unknown Demand)', range: '<40', color: '#9C27B0' }
+    };
+
+    // スコア内訳の表示
+    const breakdown = reasons.scoreBreakdown || {};
+    const breakdownLabels = {
+      competition: isJa ? '競争係数' : 'Competition',
+      hitDensity: isJa ? 'ヒット密度' : 'Hit Density',
+      revenue: isJa ? '収益性' : 'Revenue',
+      niche: isJa ? 'ニッチ度' : 'Niche',
+      synergy: isJa ? 'タグシナジー' : 'Synergy',
+      demand: isJa ? '需要確実性' : 'Demand'
+    };
+
+    const breakdownRows = Object.entries(breakdown).map(([key, data]) => {
+      const contribColor = data.contribution > 0 ? '#4CAF50' : data.contribution < 0 ? '#f44336' : '#888';
+      const contribSign = data.contribution > 0 ? '+' : '';
+      return `
+        <tr>
+          <td>${breakdownLabels[key] || key}</td>
+          <td>${data.score}</td>
+          <td>×${data.weight}%</td>
+          <td style="color: ${contribColor}; font-weight: 600;">${contribSign}${data.contribution}</td>
+        </tr>
+      `;
+    }).join('');
+
+    // 黄金ゾーン表示
+    const goldenZoneHTML = reasons.goldenZone ? `
+      <div class="golden-zone-alert">
+        🔥 ${reasons.goldenZone}
+      </div>
+    ` : '';
+
+    // ポジティブ・ネガティブ要因
+    const positiveHTML = reasons.positive && reasons.positive.length > 0 ? `
+      <div class="reasons-list positive">
+        <h4>✅ ${isJa ? 'プラス要因' : 'Positive Factors'}</h4>
+        <ul>
+          ${reasons.positive.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+    ` : '';
+
+    const negativeHTML = reasons.negative && reasons.negative.length > 0 ? `
+      <div class="reasons-list negative">
+        <h4>⚠️ ${isJa ? 'マイナス要因' : 'Negative Factors'}</h4>
+        <ul>
+          ${reasons.negative.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+    ` : '';
+
+    container.innerHTML = `
+      <div class="judgment-reasons">
+        <h3 class="judgment-reasons-title">
+          📊 ${isJa ? 'なぜこの判定？' : 'Why This Judgment?'}
+        </h3>
+
+        ${goldenZoneHTML}
+
+        <div class="score-calculation">
+          <div class="score-formula">
+            <span class="base-score">${isJa ? '基準点' : 'Base'}: 50</span>
+            <span class="operator">+</span>
+            <span class="weighted-sum">${isJa ? '重み付け合計' : 'Weighted Sum'}</span>
+            <span class="operator">=</span>
+            <span class="final-score" style="color: ${thresholdLabels[oceanColor === 'blue' && totalScore < 85 ? 'bluePromising' : oceanColor]?.color || '#888'};">${totalScore}${isJa ? '点' : 'pts'}</span>
+          </div>
+
+          <table class="score-breakdown-table">
+            <thead>
+              <tr>
+                <th>${isJa ? '項目' : 'Item'}</th>
+                <th>${isJa ? 'スコア' : 'Score'}</th>
+                <th>${isJa ? '重み' : 'Weight'}</th>
+                <th>${isJa ? '貢献' : 'Contrib.'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${breakdownRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="threshold-reference">
+          <h4>${isJa ? '判定基準' : 'Thresholds'}</h4>
+          <div class="threshold-bars">
+            ${Object.entries(thresholdLabels).map(([key, t]) => `
+              <div class="threshold-item ${oceanColor === key || (oceanColor === 'blue' && key === 'bluePromising' && totalScore < 85) ? 'active' : ''}">
+                <span class="threshold-color" style="background: ${t.color};"></span>
+                <span class="threshold-label">${t.label}</span>
+                <span class="threshold-range">${t.range}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="reasons-factors">
+          ${positiveHTML}
+          ${negativeHTML}
+        </div>
       </div>
     `;
   },
