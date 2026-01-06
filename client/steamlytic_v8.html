@@ -515,15 +515,18 @@
             }
         };
 
-        // Language state - will be updated from parent frame
+        // Language state - managed via React context
         let currentLang = getLanguage();
+        let setLangCallback = null;
 
         // Listen for language changes from parent frame
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'setLanguage') {
-                currentLang = event.data.lang || 'ja';
-                // Force re-render by reloading (or implement React state update)
-                window.location.reload();
+                const newLang = event.data.lang || 'ja';
+                currentLang = newLang;
+                if (setLangCallback) {
+                    setLangCallback(newLang);
+                }
             }
         });
 
@@ -1618,6 +1621,18 @@
         const App = () => {
             // 埋め込みモード検知（URLパラメータ ?embed=true）
             const isEmbedMode = new URLSearchParams(window.location.search).get('embed') === 'true';
+
+            // Language state for React re-rendering
+            const [lang, setLang] = useState(getLanguage());
+
+            // Register callback for language changes from parent frame
+            useEffect(() => {
+                setLangCallback = (newLang) => {
+                    currentLang = newLang;
+                    setLang(newLang);
+                };
+                return () => { setLangCallback = null; };
+            }, []);
 
             const [view, setView] = useState('dashboard');
             const [viewMode, setViewMode] = useState('table');
