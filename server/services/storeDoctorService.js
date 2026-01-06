@@ -261,6 +261,43 @@ const OVERLY_BROAD_TAGS = [
   'Full controller support', 'Steam Achievements'
 ];
 
+// ジャンル名の日本語→英語マッピング
+const GENRE_NAME_EN = {
+  'アクション': 'Action',
+  'アドベンチャー': 'Adventure',
+  'カジュアル': 'Casual',
+  'インディー': 'Indie',
+  'MMO': 'MMO',
+  'レース': 'Racing',
+  'RPG': 'RPG',
+  'シミュレーション': 'Simulation',
+  'スポーツ': 'Sports',
+  'ストラテジー': 'Strategy',
+  '無料プレイ': 'Free to Play',
+  '早期アクセス': 'Early Access',
+  'デザイン＆イラスト': 'Design & Illustration',
+  '教育': 'Education',
+  'ユーティリティ': 'Utilities',
+  '動画制作': 'Video Production',
+  'ウェブ公開': 'Web Publishing',
+  'ソフトウェアトレーニング': 'Software Training',
+  'アニメーション＆モデリング': 'Animation & Modeling',
+  'オーディオ制作': 'Audio Production',
+  '写真編集': 'Photo Editing',
+  'ゲーム開発': 'Game Development',
+  'アカウンティング': 'Accounting',
+  '会計': 'Accounting',
+  'ドキュメント': 'Document',
+  'ソフトウェア': 'Software',
+  '音楽': 'Music',
+  '無料': 'Free',
+  'ホラー': 'Horror',
+  'パズル': 'Puzzle',
+  'シューティング': 'Shooter',
+  '格闘': 'Fighting',
+  'プラットフォーム': 'Platformer'
+};
+
 /**
  * ストア診断を実行
  * @param {string} appId - Steam AppID
@@ -890,7 +927,14 @@ function diagnoseBasicInfo(gameData, lang = 'ja') {
     });
     score -= 15;
   } else {
-    passed.push(getMsg(lang, 'basicPassedGenres', genres.map(g => g.description).join(', ')));
+    // 英語モードの場合はジャンル名を英語に変換
+    const genreNames = genres.map(g => {
+      if (lang === 'en' && GENRE_NAME_EN[g.description]) {
+        return GENRE_NAME_EN[g.description];
+      }
+      return g.description;
+    }).join(', ');
+    passed.push(getMsg(lang, 'basicPassedGenres', genreNames));
   }
 
   // カテゴリ（機能）チェック
