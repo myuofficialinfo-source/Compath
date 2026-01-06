@@ -1,0 +1,10 @@
+# Compath - Steam Developer Assistant
+# TODO: リリース時に Disallow: / を削除してインデックスを許可する
+
+User-agent: *
+Disallow: /
+
+# リリース後は以下に変更:
+# User-agent: *
+# Allow: /
+# Sitemap: https://compath.jp/sitemap.xml
