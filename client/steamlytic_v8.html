@@ -1684,16 +1684,38 @@
             useEffect(() => localStorage.setItem('steamlytic_lists', JSON.stringify(lists)), [lists]);
             useEffect(() => localStorage.setItem('steamlytic_config', JSON.stringify(config)), [config]);
 
-            // Track previous language to detect changes
-            const prevLangRef = useRef(lang);
+            // Track previous language to detect changes (null = first render, needs check)
+            const prevLangRef = useRef(null);
+            // Track if games were fetched with current language
+            const gamesFetchedLangRef = useRef(null);
 
             // Re-fetch all games when language changes
             useEffect(() => {
                 const refetchAllGames = async () => {
-                    if (games.length === 0) return;
-                    if (prevLangRef.current === lang) return;
+                    if (games.length === 0) {
+                        // No games, just update refs
+                        prevLangRef.current = lang;
+                        gamesFetchedLangRef.current = lang;
+                        return;
+                    }
+
+                    // Check if we need to re-fetch:
+                    // 1. If prevLangRef is null (first render) - check if games were fetched with different lang
+                    // 2. If language actually changed from previous
+                    const needsRefetch = prevLangRef.current !== null && prevLangRef.current !== lang;
 
                     prevLangRef.current = lang;
+
+                    if (!needsRefetch) {
+                        // First render - check if stored games match current language by checking localStorage
+                        const storedLang = localStorage.getItem('steamlytic_games_lang');
+                        if (storedLang && storedLang !== lang) {
+                            console.log(`Stored games were in ${storedLang}, current is ${lang}, re-fetching...`);
+                        } else {
+                            gamesFetchedLangRef.current = lang;
+                            return;
+                        }
+                    }
 
                     console.log(`Language changed to ${lang}, re-fetching ${games.length} games...`);
 
@@ -1715,6 +1737,8 @@
                     }
 
                     setGames(updatedGames);
+                    gamesFetchedLangRef.current = lang;
+                    localStorage.setItem('steamlytic_games_lang', lang);
                     console.log('Games re-fetched for language:', lang);
                 };
 
@@ -2036,7 +2060,7 @@
                     updateToast(toastId, { message: t('fetching', id, i + 1, ids.length), progress: Math.round((i / ids.length) * 100) });
                     if (games.some(g => g.id === id)) { newGameIds.push(id); successCount++; continue; }
                     const data = await fetchGame(id, config.multiplier, config.aspFactor);
-                    if (data) { setGames(prev => [...prev, data]); newGameIds.push(data.id); successCount++; } else failCount++;
+                    if (data) { setGames(prev => [...prev, data]); newGameIds.push(data.id); successCount++; localStorage.setItem('steamlytic_games_lang', currentLang); } else failCount++;
                     await new Promise(r => setTimeout(r, 600));
                 }
                 if (activeListId) setLists(prev => prev.map(l => l.id === activeListId ? { ...l, gameIds: [...new Set([...l.gameIds, ...newGameIds])] } : l));
