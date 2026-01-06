@@ -58,11 +58,11 @@ const POPULAR_TAGS = {
  * @returns {Promise<Object>} 分析結果
  */
 async function analyzeMarket(concept) {
-  const { mainGenre, subGenres = [], themes = [], freeText = '' } = concept;
+  const { tags = [], freeText = '' } = concept;
 
   try {
-    // タグの組み合わせで検索
-    const searchTags = [mainGenre, ...subGenres, ...themes].filter(Boolean);
+    // 選択されたタグを検索用に使用
+    const searchTags = tags.filter(Boolean);
 
     // Steam検索で競合を取得
     const competitors = await searchSteamGames(searchTags);
@@ -98,9 +98,7 @@ async function analyzeMarket(concept) {
 
     return {
       concept: {
-        mainGenre,
-        subGenres,
-        themes,
+        tags: searchTags,
         freeText
       },
       oceanColor: oceanColor.color,
@@ -420,7 +418,169 @@ function getTagList() {
   return POPULAR_TAGS;
 }
 
+// タグキャッシュ（1時間有効）
+let tagCache = {
+  japanese: null,
+  english: null,
+  lastFetch: null
+};
+const TAG_CACHE_TTL = 60 * 60 * 1000; // 1時間
+
+// ジャンル系タグID（Steam公式の分類）
+const GENRE_TAG_IDS = new Set([
+  19, // Action
+  21, // Adventure
+  122, // RPG
+  9, // Strategy
+  599, // Simulation
+  701, // Sports
+  699, // Racing
+  1664, // Puzzle
+  597, // Casual
+  492, // Indie
+  1774, // Shooter
+  1625, // Platformer
+  1667, // Horror
+  1662, // Survival
+  1743, // Fighting
+  3799, // Visual Novel
+  4434, // JRPG
+  1677, // Turn-Based
+  1676, // Real-Time Strategy
+  4166, // Metroidvania
+  29482, // Souls-like
+  1716, // Roguelike
+  3959, // Roguelite
+  1720, // Dungeon Crawler
+  3878, // Bullet Hell
+  1770, // Board Game
+  1698, // Card Game
+  4106, // Action RPG
+  1684, // Tactical
+]);
+
+// サブジャンル系タグID
+const SUBGENRE_TAG_IDS = new Set([
+  1654, // Exploration
+  3871, // 2D Platformer
+  4231, // 3D Platformer
+  1663, // FPS
+  21978, // Immersive Sim
+  1685, // Tower Defense
+  4295, // City Builder
+  4328, // Colony Sim
+  5984, // Base Building
+  4191, // Sandbox
+  1702, // Crafting
+  3968, // Open World
+  1697, // Third Person
+  6730, // Hack and Slash
+  4026, // Side Scroller
+  4325, // Top-Down
+  1759, // Dating Sim
+  5363, // Deck Building
+  615, // Rhythm
+  1708, // Tactical RPG
+  220585, // Auto Battler
+  17894, // Battle Royale
+  4758, // Match 3
+  7208, // Time Management
+  9551, // Management
+  7622, // MMORPG
+  3839, // RTS
+  1738, // Point & Click
+]);
+
+// テーマ系タグID
+const THEME_TAG_IDS = new Set([
+  1684, // Fantasy
+  3942, // Sci-fi
+  4667, // Cyberpunk
+  7432, // Post-apocalyptic
+  1664, // Medieval
+  1659, // Zombies
+  1719, // Comedy
+  1721, // Dark
+  4085, // Anime
+  3964, // Pixel Graphics
+  4726, // Cute
+  1628, // Retro
+  5350, // Atmospheric
+  5984, // Military
+  1695, // Space
+  1673, // Steampunk
+  4004, // Mystery
+  4604, // Underwater
+  10397, // Western
+  4400, // Mythology
+  4555, // Noir
+  4057, // Magic
+  3987, // Historical
+]);
+
+/**
+ * Steam公式タグAPIからタグリストを取得
+ * @param {string} lang - 言語コード（japanese/english）
+ */
+async function fetchSteamTags(lang = 'japanese') {
+  // キャッシュチェック
+  const now = Date.now();
+  if (tagCache[lang] && tagCache.lastFetch && (now - tagCache.lastFetch) < TAG_CACHE_TTL) {
+    console.log(`[BlueOcean] Using cached tags for ${lang}`);
+    return tagCache[lang];
+  }
+
+  try {
+    const response = await axios.get(`https://store.steampowered.com/tagdata/populartags/${lang}`, {
+      timeout: 10000
+    });
+
+    const allTags = response.data;
+
+    // タグをカテゴリ分けして整理
+    const categorizedTags = {
+      genres: [],
+      subgenres: [],
+      themes: [],
+      other: []
+    };
+
+    for (const tag of allTags) {
+      const tagWithCategory = {
+        tagid: tag.tagid,
+        name: tag.name
+      };
+
+      if (GENRE_TAG_IDS.has(tag.tagid)) {
+        categorizedTags.genres.push(tagWithCategory);
+      } else if (SUBGENRE_TAG_IDS.has(tag.tagid)) {
+        categorizedTags.subgenres.push(tagWithCategory);
+      } else if (THEME_TAG_IDS.has(tag.tagid)) {
+        categorizedTags.themes.push(tagWithCategory);
+      } else {
+        categorizedTags.other.push(tagWithCategory);
+      }
+    }
+
+    // キャッシュに保存
+    tagCache[lang] = categorizedTags;
+    tagCache.lastFetch = now;
+
+    console.log(`[BlueOcean] Fetched ${allTags.length} tags from Steam (${lang})`);
+    console.log(`  - Genres: ${categorizedTags.genres.length}`);
+    console.log(`  - Subgenres: ${categorizedTags.subgenres.length}`);
+    console.log(`  - Themes: ${categorizedTags.themes.length}`);
+
+    return categorizedTags;
+
+  } catch (error) {
+    console.error('[BlueOcean] Failed to fetch Steam tags:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   analyzeMarket,
-  getTagList
+  getTagList,
+  fetchSteamTags
 };

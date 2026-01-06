@@ -2013,47 +2013,102 @@ const StoreDoctor = {
 
 // Blue Ocean Scout ツール
 const BlueOcean = {
-  selectedMainGenre: null,
-  selectedSubGenres: [],
-  selectedThemes: [],
+  selectedTags: [], // 選択されたタグ（tagid, name）の配列
   currentResult: null,
+  steamTags: null, // Steam公式タグ（キャッシュ）
+  isLoadingTags: false,
 
-  // ジャンル・テーマリスト（英語キー）
-  mainGenres: [
-    'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation',
-    'Sports', 'Racing', 'Puzzle', 'Casual', 'Horror',
-    'Platformer', 'Shooter', 'Fighting', 'Visual Novel', 'Roguelike'
-  ],
-  subGenres: [
-    'Metroidvania', 'Souls-like', 'Roguelite', 'Turn-Based', 'Real-Time',
-    'Open World', 'Linear', 'Sandbox', 'Tower Defense', 'Card Game',
-    'Survival', 'Crafting', 'Base Building', 'City Builder', 'Management',
-    'Dating Sim', 'Dungeon Crawler', 'Hack and Slash', 'Bullet Hell', 'Rhythm'
-  ],
-  themes: [
-    'Fantasy', 'Sci-Fi', 'Horror', 'Post-Apocalyptic', 'Cyberpunk',
-    'Medieval', 'Modern', 'Historical', 'Anime', 'Pixel Art',
-    'Cute', 'Dark', 'Comedy', 'Mystery', 'Military',
-    'Space', 'Underwater', 'Western', 'Steampunk', 'Mythology'
-  ],
-
-  // タグのラベルを取得（現在の言語に応じて）
-  getTagLabel(category, value) {
-    return Lang.getTag(category, value);
-  },
-
-  init() {
+  async init() {
     // 選択状態をリセット
-    this.selectedMainGenre = null;
-    this.selectedSubGenres = [];
-    this.selectedThemes = [];
+    this.selectedTags = [];
+    this.currentResult = null;
+
+    // まずローディング画面を表示
+    this.renderLoadingPage();
+
+    // Steam公式タグを取得
+    await this.fetchSteamTags();
+
+    // タグ取得後にページを描画
     this.renderPage();
     this.bindEvents();
+  },
+
+  renderLoadingPage() {
+    const page = document.getElementById('blue-ocean-page');
+    const isJa = Lang.current === 'ja';
+
+    page.innerHTML = `
+      <header class="tool-header">
+        <div class="tool-header-left">
+          <button class="back-button" onclick="navigateTo('home')" title="${isJa ? 'ホームに戻る' : 'Back to Home'}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <h1 class="tool-title">${Lang.get('toolBlueOcean')}</h1>
+        </div>
+        ${UI.getLanguageSwitcher()}
+      </header>
+      <div class="loading-container" style="text-align: center; padding: 100px 20px;">
+        <div class="spinner" style="margin: 0 auto 20px;"></div>
+        <p style="color: #888;">${isJa ? 'Steamタグを読み込み中...' : 'Loading Steam tags...'}</p>
+      </div>
+    `;
+  },
+
+  async fetchSteamTags() {
+    if (this.steamTags) return; // キャッシュがあればスキップ
+    if (this.isLoadingTags) return;
+
+    this.isLoadingTags = true;
+    try {
+      const lang = Lang.current === 'ja' ? 'japanese' : 'english';
+      const response = await fetch(`/api/blue-ocean/steam-tags?lang=${lang}`);
+      if (!response.ok) throw new Error('タグ取得失敗');
+      const data = await response.json();
+      this.steamTags = data.tags;
+      console.log('Steam tags loaded:', this.steamTags);
+    } catch (error) {
+      console.error('Steam tags fetch error:', error);
+      // フォールバック: ハードコードのタグを使用
+      this.steamTags = {
+        genres: [],
+        subgenres: [],
+        themes: [],
+        other: []
+      };
+    } finally {
+      this.isLoadingTags = false;
+    }
+  },
+
+  renderTagSection(title, tags, selectorId, isRequired = false) {
+    const isJa = Lang.current === 'ja';
+    if (!tags || tags.length === 0) return '';
+
+    return `
+      <div class="form-section">
+        <h3 class="form-section-title">
+          ${title}
+          ${isRequired
+            ? `<span class="required">${isJa ? '必須' : 'Required'}</span>`
+            : `<span class="optional">${isJa ? '任意・複数可' : 'Optional, Multiple'}</span>`
+          }
+        </h3>
+        <div class="tag-selector" id="${selectorId}">
+          ${tags.map(tag => `
+            <span class="tag-option" data-tagid="${tag.tagid}" data-name="${tag.name}">${tag.name}</span>
+          `).join('')}
+        </div>
+      </div>
+    `;
   },
 
   renderPage() {
     const page = document.getElementById('blue-ocean-page');
     const isJa = Lang.current === 'ja';
+    const tags = this.steamTags || { genres: [], subgenres: [], themes: [], other: [] };
 
     page.innerHTML = `
       <header class="tool-header">
@@ -2073,47 +2128,48 @@ const BlueOcean = {
       <div id="ocean-input-view">
         <section class="search-section">
           <h2 class="search-title">${isJa ? 'ブルーオーシャン・スカウト' : 'Blue Ocean Scout'}</h2>
-          <p class="search-subtitle">${isJa ? '作りたいゲームのコンセプトを入力して、市場の空き状況を分析します' : 'Enter your game concept to analyze market opportunities'}</p>
+          <p class="search-subtitle">${isJa ? '作りたいゲームのタグを選択して、市場の空き状況を分析します' : 'Select tags for your game concept to analyze market opportunities'}</p>
+
+          <!-- 選択中のタグ表示 -->
+          <div class="selected-tags-container" id="selected-tags-container">
+            <h3 class="form-section-title">${isJa ? '選択中のタグ' : 'Selected Tags'} <span id="selected-count">(0)</span></h3>
+            <div class="selected-tags" id="selected-tags">
+              <span class="no-tags-hint">${isJa ? 'タグを選択してください' : 'Please select tags'}</span>
+            </div>
+          </div>
 
           <form class="concept-form" id="concept-form">
-            <!-- メインジャンル（必須） -->
-            <div class="form-section">
-              <h3 class="form-section-title">
-                ${isJa ? 'メインジャンル' : 'Main Genre'}
-                <span class="required">${isJa ? '必須' : 'Required'}</span>
-              </h3>
-              <div class="tag-selector" id="main-genre-selector">
-                ${this.mainGenres.map(genre => `
-                  <span class="tag-option" data-value="${genre}">${this.getTagLabel('mainGenres', genre)}</span>
-                `).join('')}
-              </div>
-            </div>
+            <!-- ジャンル（Steam公式タグ） -->
+            ${this.renderTagSection(
+              isJa ? 'ジャンル' : 'Genre',
+              tags.genres,
+              'genre-selector',
+              true
+            )}
 
-            <!-- サブジャンル（任意） -->
-            <div class="form-section">
-              <h3 class="form-section-title">
-                ${isJa ? 'サブジャンル' : 'Sub Genre'}
-                <span class="optional">${isJa ? '任意・複数可' : 'Optional, Multiple'}</span>
-              </h3>
-              <div class="tag-selector" id="sub-genre-selector">
-                ${this.subGenres.map(genre => `
-                  <span class="tag-option" data-value="${genre}">${this.getTagLabel('subGenres', genre)}</span>
-                `).join('')}
-              </div>
-            </div>
+            <!-- サブジャンル（Steam公式タグ） -->
+            ${this.renderTagSection(
+              isJa ? 'サブジャンル' : 'Sub Genre',
+              tags.subgenres,
+              'subgenre-selector',
+              false
+            )}
 
-            <!-- テーマ（任意） -->
-            <div class="form-section">
-              <h3 class="form-section-title">
-                ${isJa ? 'テーマ・世界観' : 'Theme / Setting'}
-                <span class="optional">${isJa ? '任意・複数可' : 'Optional, Multiple'}</span>
-              </h3>
-              <div class="tag-selector" id="theme-selector">
-                ${this.themes.map(theme => `
-                  <span class="tag-option" data-value="${theme}">${this.getTagLabel('themes', theme)}</span>
-                `).join('')}
-              </div>
-            </div>
+            <!-- テーマ（Steam公式タグ） -->
+            ${this.renderTagSection(
+              isJa ? 'テーマ・世界観' : 'Theme / Setting',
+              tags.themes,
+              'theme-selector',
+              false
+            )}
+
+            <!-- その他のタグ -->
+            ${tags.other && tags.other.length > 0 ? this.renderTagSection(
+              isJa ? 'その他のタグ' : 'Other Tags',
+              tags.other.slice(0, 50), // 最初の50件のみ表示
+              'other-selector',
+              false
+            ) : ''}
 
             <!-- 自由記述 -->
             <div class="form-section">
@@ -2166,48 +2222,70 @@ const BlueOcean = {
   },
 
   bindEvents() {
-    // メインジャンル選択（単一）
-    document.getElementById('main-genre-selector').addEventListener('click', (e) => {
-      if (e.target.classList.contains('tag-option')) {
-        // 既存の選択を解除
-        document.querySelectorAll('#main-genre-selector .tag-option').forEach(el => {
-          el.classList.remove('selected');
-        });
-        // 新しい選択
-        e.target.classList.add('selected');
-        this.selectedMainGenre = e.target.dataset.value;
-      }
-    });
+    // 汎用タグ選択イベントハンドラ
+    const handleTagClick = (selectorId, isMultiple = true) => {
+      const selector = document.getElementById(selectorId);
+      if (!selector) return;
 
-    // サブジャンル選択（複数可）
-    document.getElementById('sub-genre-selector').addEventListener('click', (e) => {
-      if (e.target.classList.contains('tag-option')) {
-        e.target.classList.toggle('selected');
-        const value = e.target.dataset.value;
-        if (e.target.classList.contains('selected')) {
-          if (!this.selectedSubGenres.includes(value)) {
-            this.selectedSubGenres.push(value);
-          }
-        } else {
-          this.selectedSubGenres = this.selectedSubGenres.filter(v => v !== value);
-        }
-      }
-    });
+      selector.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tag-option')) {
+          const tagid = parseInt(e.target.dataset.tagid);
+          const name = e.target.dataset.name;
 
-    // テーマ選択（複数可）
-    document.getElementById('theme-selector').addEventListener('click', (e) => {
-      if (e.target.classList.contains('tag-option')) {
-        e.target.classList.toggle('selected');
-        const value = e.target.dataset.value;
-        if (e.target.classList.contains('selected')) {
-          if (!this.selectedThemes.includes(value)) {
-            this.selectedThemes.push(value);
+          if (isMultiple) {
+            // 複数選択可能
+            e.target.classList.toggle('selected');
+            if (e.target.classList.contains('selected')) {
+              // 追加
+              if (!this.selectedTags.find(t => t.tagid === tagid)) {
+                this.selectedTags.push({ tagid, name });
+              }
+            } else {
+              // 削除
+              this.selectedTags = this.selectedTags.filter(t => t.tagid !== tagid);
+            }
+          } else {
+            // 単一選択（ジャンル用 - でも複数選択に変更）
+            e.target.classList.toggle('selected');
+            if (e.target.classList.contains('selected')) {
+              if (!this.selectedTags.find(t => t.tagid === tagid)) {
+                this.selectedTags.push({ tagid, name });
+              }
+            } else {
+              this.selectedTags = this.selectedTags.filter(t => t.tagid !== tagid);
+            }
           }
-        } else {
-          this.selectedThemes = this.selectedThemes.filter(v => v !== value);
+
+          // 選択中タグの表示を更新
+          this.updateSelectedTagsDisplay();
         }
-      }
-    });
+      });
+    };
+
+    // 各セレクターにイベントを設定
+    handleTagClick('genre-selector', true);
+    handleTagClick('subgenre-selector', true);
+    handleTagClick('theme-selector', true);
+    handleTagClick('other-selector', true);
+
+    // 選択中タグのクリックで削除
+    const selectedTagsContainer = document.getElementById('selected-tags');
+    if (selectedTagsContainer) {
+      selectedTagsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('selected-tag-remove') || e.target.closest('.selected-tag-remove')) {
+          const tagEl = e.target.closest('.selected-tag');
+          if (tagEl) {
+            const tagid = parseInt(tagEl.dataset.tagid);
+            this.selectedTags = this.selectedTags.filter(t => t.tagid !== tagid);
+            // 元のセレクター内のタグの選択も解除
+            document.querySelectorAll(`.tag-option[data-tagid="${tagid}"]`).forEach(el => {
+              el.classList.remove('selected');
+            });
+            this.updateSelectedTagsDisplay();
+          }
+        }
+      });
+    }
 
     // フォーム送信
     document.getElementById('concept-form').addEventListener('submit', async (e) => {
@@ -2219,26 +2297,49 @@ const BlueOcean = {
     UI.bindLanguageSwitcher();
   },
 
+  updateSelectedTagsDisplay() {
+    const container = document.getElementById('selected-tags');
+    const countEl = document.getElementById('selected-count');
+    const isJa = Lang.current === 'ja';
+
+    if (!container) return;
+
+    if (this.selectedTags.length === 0) {
+      container.innerHTML = `<span class="no-tags-hint">${isJa ? 'タグを選択してください' : 'Please select tags'}</span>`;
+      if (countEl) countEl.textContent = '(0)';
+    } else {
+      container.innerHTML = this.selectedTags.map(tag => `
+        <span class="selected-tag" data-tagid="${tag.tagid}">
+          ${tag.name}
+          <span class="selected-tag-remove">×</span>
+        </span>
+      `).join('');
+      if (countEl) countEl.textContent = `(${this.selectedTags.length})`;
+    }
+  },
+
   async analyze() {
-    if (!this.selectedMainGenre) {
-      const isJa = Lang.current === 'ja';
-      UI.showToast(isJa ? 'メインジャンルを選択してください' : 'Please select a main genre', 'error');
+    const isJa = Lang.current === 'ja';
+
+    // 少なくとも1つのタグが必要
+    if (this.selectedTags.length === 0) {
+      UI.showToast(isJa ? 'タグを1つ以上選択してください' : 'Please select at least one tag', 'error');
       return;
     }
 
     const freeText = document.getElementById('free-text').value.trim();
-    const isJa = Lang.current === 'ja';
 
     try {
       UI.showLoading(isJa ? '市場を分析中...' : 'Analyzing market...');
+
+      // タグ名の配列を作成（サーバー側はタグ名で検索）
+      const tagNames = this.selectedTags.map(t => t.name);
 
       const response = await fetch('/api/blue-ocean/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mainGenre: this.selectedMainGenre,
-          subGenres: this.selectedSubGenres,
-          themes: this.selectedThemes,
+          tags: tagNames,
           freeText
         })
       });
