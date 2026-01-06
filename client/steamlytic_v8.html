@@ -655,13 +655,17 @@
 
         const fetchGame = async (id, multiplier = 35, aspFactor = 0.7) => {
             try {
+                // Determine language for Steam API
+                const steamLang = currentLang === 'ja' ? 'japanese' : 'english';
+                const steamCC = currentLang === 'ja' ? 'jp' : 'us';
+
                 // Fetch basic info, players, and reviews
                 const [sJ, cJ, rJ, html] = await Promise.all([
-                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${id}&cc=jp&l=japanese`)}`).then(j => j && j[id] && j[id].success ? j[id].data : null),
+                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/api/appdetails?appids=${id}&cc=${steamCC}&l=${steamLang}`)}`).then(j => j && j[id] && j[id].success ? j[id].data : null),
                     fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${id}`)}`).then(j => j && j.response ? j.response.player_count : 0),
                     fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/appreviews/${id}?json=1&language=all`)}`).then(j => j && j.query_summary ? j.query_summary : null),
                     // Fetch HTML to scrape popular user tags
-                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/app/${id}/?l=japanese`)}`, 3, 1000, null, 'text')
+                    fetchWithRetry(`${CORS_PROXY}${encodeURIComponent(`https://store.steampowered.com/app/${id}/?l=${steamLang}`)}`, 3, 1000, null, 'text')
                 ]);
 
                 if (!sJ) return null;
@@ -1679,6 +1683,43 @@
             useEffect(() => localStorage.setItem('steamlytic_games_pool', JSON.stringify(games)), [games]);
             useEffect(() => localStorage.setItem('steamlytic_lists', JSON.stringify(lists)), [lists]);
             useEffect(() => localStorage.setItem('steamlytic_config', JSON.stringify(config)), [config]);
+
+            // Track previous language to detect changes
+            const prevLangRef = useRef(lang);
+
+            // Re-fetch all games when language changes
+            useEffect(() => {
+                const refetchAllGames = async () => {
+                    if (games.length === 0) return;
+                    if (prevLangRef.current === lang) return;
+
+                    prevLangRef.current = lang;
+
+                    console.log(`Language changed to ${lang}, re-fetching ${games.length} games...`);
+
+                    const updatedGames = [];
+                    for (const game of games) {
+                        try {
+                            const data = await fetchGame(game.id, config.multiplier, config.aspFactor);
+                            if (data) {
+                                updatedGames.push(data);
+                            } else {
+                                updatedGames.push(game); // Keep original if fetch fails
+                            }
+                            // Small delay to avoid rate limiting
+                            await new Promise(r => setTimeout(r, 300));
+                        } catch (err) {
+                            console.error(`Failed to re-fetch game ${game.id}:`, err);
+                            updatedGames.push(game);
+                        }
+                    }
+
+                    setGames(updatedGames);
+                    console.log('Games re-fetched for language:', lang);
+                };
+
+                refetchAllGames();
+            }, [lang]);
 
             const [listSearch, setListSearch] = useState("");
 
