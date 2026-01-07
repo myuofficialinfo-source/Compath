@@ -137,6 +137,16 @@ app.get('/tools/:toolName', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
+// プライバシーポリシー
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/privacy.html'));
+});
+
+// 利用規約
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/terms.html'));
+});
+
 // 404ハンドラ
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });

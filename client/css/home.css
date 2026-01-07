@@ -298,6 +298,27 @@
   line-height: 1.6;
 }
 
+.footer-links {
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: var(--accent-primary);
+}
+
+.footer-separator {
+  margin: 0 12px;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
 /* レスポンシブ */
 @media (max-width: 768px) {
   .logo {

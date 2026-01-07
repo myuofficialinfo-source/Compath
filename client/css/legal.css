@@ -1,0 +1,166 @@
+/**
+ * Compath - プライバシーポリシー・利用規約ページスタイル
+ */
+
+.legal-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.legal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.legal-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-family: var(--font-accent);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.legal-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.legal-content {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 60px 40px;
+  width: 100%;
+}
+
+.legal-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--accent-primary);
+}
+
+.legal-section {
+  margin-bottom: 40px;
+}
+
+.legal-section h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.legal-section p {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+
+.legal-section ul {
+  margin: 0;
+  padding-left: 24px;
+  color: var(--text-secondary);
+}
+
+.legal-section li {
+  line-height: 1.8;
+  margin-bottom: 8px;
+}
+
+.legal-updated {
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.legal-footer {
+  padding: 30px 40px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.legal-footer a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: opacity 0.2s ease;
+}
+
+.legal-footer a:hover {
+  opacity: 0.8;
+}
+
+/* 言語切り替え（ヘッダー内） */
+.legal-header .language-switcher {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 4px;
+}
+
+.legal-header .lang-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.legal-header .lang-btn:hover {
+  color: var(--text-primary);
+}
+
+.legal-header .lang-btn.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .legal-header {
+    padding: 16px 20px;
+  }
+
+  .legal-logo {
+    font-size: 1.2rem;
+  }
+
+  .legal-logo-img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .legal-content {
+    padding: 40px 20px;
+  }
+
+  .legal-title {
+    font-size: 1.6rem;
+  }
+
+  .legal-section h2 {
+    font-size: 1.1rem;
+  }
+}
