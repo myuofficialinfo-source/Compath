@@ -20,6 +20,14 @@
       "dest": "/client/index.html"
     },
     {
+      "src": "/privacy",
+      "dest": "/client/privacy.html"
+    },
+    {
+      "src": "/terms",
+      "dest": "/client/terms.html"
+    },
+    {
       "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|html))",
       "dest": "/client/$1"
     },
