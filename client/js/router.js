@@ -39,6 +39,9 @@ function navigateTo(pageName) {
     } else if (pageName === 'steamlytic') {
       ToolAccessTracker.recordAccess('steamlytic');
       Steamlytic.init();
+    } else if (pageName === 'game-search') {
+      ToolAccessTracker.recordAccess('game-search');
+      GameSearch.init();
     } else if (pageName === 'home') {
       // ホーム画面表示時にツールカードを人気順に並べ替え
       ToolAccessTracker.sortToolCards();
@@ -132,6 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Game Search
+  const gameSearchBtn = document.getElementById('btn-game-search');
+  if (gameSearchBtn) {
+    gameSearchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigateTo('game-search');
+    });
+  }
+
   // 言語切り替えボタンのイベント
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -150,6 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
         VisualTrend.init();
       } else if (AppState.currentPage === 'steamlytic') {
         Steamlytic.init();
+      } else if (AppState.currentPage === 'game-search') {
+        GameSearch.init();
       }
       // ホームページの場合はLang.set内のupdateHomeUIで更新される
     });
