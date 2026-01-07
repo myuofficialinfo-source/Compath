@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steamゲーム検索 - Game Search Tool</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%238b5cf6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2211%22 cy=%2211%22 r=%228%22/><path d=%22M21 21l-4.35-4.35%22/></svg>">
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#15202e', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-200 antialiased min-h-screen overflow-x-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, useCallback } = React;
+
+        // i18n
+        const getLanguage = () => {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlLang = urlParams.get('lang');
+                if (urlLang) return urlLang;
+                if (window.parent && window.parent.Lang) {
+                    return window.parent.Lang.current || 'ja';
+                }
+            } catch (e) {}
+            return 'ja';
+        };
+
+        const i18n = {
+            ja: {
+                title: 'Steamゲーム検索',
+                subtitle: 'タグを選択してゲームを検索',
+                selectTags: 'タグを選択',
+                selectedTags: '選択中のタグ',
+                clearAll: 'クリア',
+                search: '検索する',
+                searching: '検索中...',
+                results: '検索結果',
+                noResults: '該当するゲームが見つかりませんでした',
+                selectTagsFirst: 'タグを選んで検索してください',
+                viewOnSteam: 'Steamで見る',
+                free: '無料',
+                reviews: 'レビュー',
+                owners: '所有者',
+                maxTags: '最大5つまで選択可能',
+                genres: 'ジャンル',
+                themes: 'テーマ',
+                features: '機能',
+                playerStyle: 'プレイスタイル',
+                error: '検索中にエラーが発生しました',
+                retry: '再試行'
+            },
+            en: {
+                title: 'Steam Game Search',
+                subtitle: 'Search games by selecting tags',
+                selectTags: 'Select Tags',
+                selectedTags: 'Selected Tags',
+                clearAll: 'Clear',
+                search: 'Search',
+                searching: 'Searching...',
+                results: 'Results',
+                noResults: 'No games found',
+                selectTagsFirst: 'Select tags to search',
+                viewOnSteam: 'View on Steam',
+                free: 'Free',
+                reviews: 'Reviews',
+                owners: 'Owners',
+                maxTags: 'Max 5 tags',
+                genres: 'Genres',
+                themes: 'Themes',
+                features: 'Features',
+                playerStyle: 'Play Style',
+                error: 'An error occurred',
+                retry: 'Retry'
+            }
+        };
+
+        // タグデータ
+        const tagData = {
+            genres: [
+                'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation',
+                'Puzzle', 'Platformer', 'Shooter', 'Racing', 'Sports',
+                'Fighting', 'Horror', 'Survival', 'Roguelike', 'Roguelite',
+                'Metroidvania', 'Visual Novel', 'JRPG', 'Tactical', 'Tower Defense'
+            ],
+            themes: [
+                'Fantasy', 'Sci-fi', 'Anime', 'Pixel Graphics', 'Retro',
+                'Dark', 'Cute', 'Atmospheric', 'Comedy', 'Mystery',
+                'Post-apocalyptic', 'Cyberpunk', 'Medieval', 'Historical', 'Western'
+            ],
+            features: [
+                'Singleplayer', 'Multiplayer', 'Co-op', 'Online Co-Op', 'Local Co-Op',
+                'PvP', 'Open World', 'Sandbox', 'Procedural Generation', 'Crafting',
+                'Base Building', 'Character Customization', 'Controller', 'VR', 'Early Access'
+            ],
+            playerStyle: [
+                'Casual', 'Difficult', 'Relaxing', 'Fast-Paced', 'Turn-Based',
+                'Real Time', 'Story Rich', 'Choices Matter', 'Exploration', 'Hack and Slash'
+            ]
+        };
+
+        // 日本語タグ名
+        const tagTranslations = {
+            'Action': 'アクション', 'Adventure': 'アドベンチャー', 'RPG': 'RPG',
+            'Strategy': 'ストラテジー', 'Simulation': 'シミュレーション',
+            'Puzzle': 'パズル', 'Platformer': 'プラットフォーマー', 'Shooter': 'シューター',
+            'Racing': 'レース', 'Sports': 'スポーツ', 'Fighting': '格闘',
+            'Horror': 'ホラー', 'Survival': 'サバイバル', 'Roguelike': 'ローグライク',
+            'Roguelite': 'ローグライト', 'Metroidvania': 'メトロイドヴァニア',
+            'Visual Novel': 'ビジュアルノベル', 'JRPG': 'JRPG', 'Tactical': 'タクティカル',
+            'Tower Defense': 'タワーディフェンス',
+            'Fantasy': 'ファンタジー', 'Sci-fi': 'SF', 'Anime': 'アニメ',
+            'Pixel Graphics': 'ピクセル', 'Retro': 'レトロ', 'Dark': 'ダーク',
+            'Cute': 'キュート', 'Atmospheric': '雰囲気', 'Comedy': 'コメディ',
+            'Mystery': 'ミステリー', 'Post-apocalyptic': 'ポストアポカリプス',
+            'Cyberpunk': 'サイバーパンク', 'Medieval': '中世', 'Historical': '歴史',
+            'Western': '西部劇',
+            'Singleplayer': 'シングル', 'Multiplayer': 'マルチ',
+            'Co-op': '協力', 'Online Co-Op': 'オンライン協力', 'Local Co-Op': 'ローカル協力',
+            'PvP': 'PvP', 'Open World': 'オープンワールド', 'Sandbox': 'サンドボックス',
+            'Procedural Generation': '自動生成', 'Crafting': 'クラフト',
+            'Base Building': '拠点構築', 'Character Customization': 'キャラメイク',
+            'Controller': 'コントローラー', 'VR': 'VR', 'Early Access': '早期アクセス',
+            'Casual': 'カジュアル', 'Difficult': '高難易度', 'Relaxing': 'リラックス',
+            'Fast-Paced': 'スピーディ', 'Turn-Based': 'ターン制', 'Real Time': 'リアルタイム',
+            'Story Rich': 'ストーリー', 'Choices Matter': '選択重要',
+            'Exploration': '探索', 'Hack and Slash': 'ハクスラ'
+        };
+
+        const CORS_PROXY = 'https://corsproxy.io/?';
+
+        // メインアプリ
+        const App = () => {
+            const [lang, setLang] = useState(getLanguage());
+            const [selectedTags, setSelectedTags] = useState([]);
+            const [results, setResults] = useState([]);
+            const [isLoading, setIsLoading] = useState(false);
+            const [hasSearched, setHasSearched] = useState(false);
+            const [error, setError] = useState(null);
+            const [expandedCategories, setExpandedCategories] = useState({
+                genres: true,
+                themes: false,
+                features: false,
+                playerStyle: false
+            });
+
+            const t = i18n[lang] || i18n.ja;
+
+            const getTagName = (tag) => {
+                return lang === 'ja' ? (tagTranslations[tag] || tag) : tag;
+            };
+
+            const toggleTag = (tag) => {
+                if (selectedTags.includes(tag)) {
+                    setSelectedTags(selectedTags.filter(t => t !== tag));
+                } else if (selectedTags.length < 5) {
+                    setSelectedTags([...selectedTags, tag]);
+                }
+            };
+
+            const clearTags = () => {
+                setSelectedTags([]);
+            };
+
+            const toggleCategory = (category) => {
+                setExpandedCategories(prev => ({
+                    ...prev,
+                    [category]: !prev[category]
+                }));
+            };
+
+            const search = async () => {
+                if (selectedTags.length === 0 || isLoading) return;
+
+                setIsLoading(true);
+                setError(null);
+                setHasSearched(true);
+
+                try {
+                    // SteamSpy API
+                    const url = `${CORS_PROXY}${encodeURIComponent(`https://steamspy.com/api.php?request=tag&tag=${encodeURIComponent(selectedTags[0])}`)}`;
+                    const response = await fetch(url);
+
+                    if (!response.ok) throw new Error('API error');
+
+                    const data = await response.json();
+                    let games = Object.values(data);
+
+                    // 複数タグフィルタリング
+                    if (selectedTags.length > 1) {
+                        games = games.filter(game => {
+                            const gameTags = game.tags ? Object.keys(game.tags) : [];
+                            return selectedTags.every(tag =>
+                                gameTags.some(gt => gt.toLowerCase().includes(tag.toLowerCase()))
+                            );
+                        });
+                    }
+
+                    // ソート & 上位50件
+                    games = games
+                        .sort((a, b) => (b.positive || 0) - (a.positive || 0))
+                        .slice(0, 50)
+                        .map(game => ({
+                            appid: game.appid,
+                            name: game.name,
+                            price: game.price ? game.price / 100 : 0,
+                            positive: game.positive || 0,
+                            negative: game.negative || 0,
+                            owners: game.owners || 'N/A',
+                            tags: game.tags ? Object.keys(game.tags).slice(0, 5) : []
+                        }));
+
+                    setResults(games);
+                } catch (err) {
+                    console.error('Search error:', err);
+                    setError(t.error);
+                    setResults([]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const getReviewScore = (positive, negative) => {
+                const total = positive + negative;
+                if (total === 0) return null;
+                return Math.round((positive / total) * 100);
+            };
+
+            const categoryLabels = {
+                genres: t.genres,
+                themes: t.themes,
+                features: t.features,
+                playerStyle: t.playerStyle
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-950">
+                    {/* ヘッダー */}
+                    <div className="bg-slate-900/50 border-b border-slate-800 px-6 py-4">
+                        <div className="max-w-7xl mx-auto">
+                            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                                <span className="text-3xl">🔍</span>
+                                {t.title}
+                            </h1>
+                            <p className="text-slate-400 mt-1">{t.subtitle}</p>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto p-6">
+                        {/* 選択中タグ */}
+                        <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4 mb-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-lg font-semibold text-white">{t.selectedTags}</h2>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-slate-500">{t.maxTags}</span>
+                                    {selectedTags.length > 0 && (
+                                        <button
+                                            onClick={clearTags}
+                                            className="text-sm text-slate-400 hover:text-white transition"
+                                        >
+                                            {t.clearAll}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 min-h-[40px]">
+                                {selectedTags.length === 0 ? (
+                                    <span className="text-slate-500">{t.selectTagsFirst}</span>
+                                ) : (
+                                    selectedTags.map(tag => (
+                                        <button
+                                            key={tag}
+                                            onClick={() => toggleTag(tag)}
+                                            className="px-3 py-1.5 bg-violet-600 text-white rounded-full text-sm font-medium flex items-center gap-2 hover:bg-violet-700 transition"
+                                        >
+                                            {getTagName(tag)}
+                                            <span className="text-violet-300">×</span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                            <button
+                                onClick={search}
+                                disabled={selectedTags.length === 0 || isLoading}
+                                className={`mt-4 w-full py-3 rounded-lg font-semibold text-white transition flex items-center justify-center gap-2 ${
+                                    selectedTags.length === 0 || isLoading
+                                        ? 'bg-slate-700 cursor-not-allowed'
+                                        : 'bg-violet-600 hover:bg-violet-700'
+                                }`}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                        </svg>
+                                        {t.searching}
+                                    </>
+                                ) : (
+                                    <>🔍 {t.search}</>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* タグカテゴリ */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            {Object.entries(tagData).map(([category, tags]) => (
+                                <div key={category} className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
+                                    <button
+                                        onClick={() => toggleCategory(category)}
+                                        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-800/50 transition"
+                                    >
+                                        <span className="font-semibold text-white">{categoryLabels[category]}</span>
+                                        <span className="text-slate-400">{expandedCategories[category] ? '▼' : '▶'}</span>
+                                    </button>
+                                    {expandedCategories[category] && (
+                                        <div className="px-4 pb-4 flex flex-wrap gap-2">
+                                            {tags.map(tag => (
+                                                <button
+                                                    key={tag}
+                                                    onClick={() => toggleTag(tag)}
+                                                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                                                        selectedTags.includes(tag)
+                                                            ? 'bg-violet-600 text-white'
+                                                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                                    }`}
+                                                >
+                                                    {getTagName(tag)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 検索結果 */}
+                        <div className="bg-slate-900/50 rounded-xl border border-slate-800 p-4">
+                            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                {t.results}
+                                {results.length > 0 && (
+                                    <span className="text-sm text-slate-400">({results.length})</span>
+                                )}
+                            </h2>
+
+                            {error ? (
+                                <div className="text-center py-12">
+                                    <div className="text-4xl mb-4">⚠️</div>
+                                    <p className="text-slate-400 mb-4">{error}</p>
+                                    <button
+                                        onClick={search}
+                                        className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition"
+                                    >
+                                        {t.retry}
+                                    </button>
+                                </div>
+                            ) : !hasSearched ? (
+                                <div className="text-center py-12">
+                                    <div className="text-4xl mb-4">🎮</div>
+                                    <p className="text-slate-400">{t.selectTagsFirst}</p>
+                                </div>
+                            ) : isLoading ? (
+                                <div className="text-center py-12">
+                                    <svg className="animate-spin h-10 w-10 mx-auto mb-4 text-violet-500" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                    </svg>
+                                    <p className="text-slate-400">{t.searching}</p>
+                                </div>
+                            ) : results.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="text-4xl mb-4">😕</div>
+                                    <p className="text-slate-400">{t.noResults}</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {results.map(game => {
+                                        const score = getReviewScore(game.positive, game.negative);
+                                        const priceText = game.price === 0 ? t.free : `¥${game.price.toLocaleString()}`;
+
+                                        return (
+                                            <div
+                                                key={game.appid}
+                                                className="bg-slate-800/50 rounded-lg overflow-hidden hover:bg-slate-800 transition animate-fade-in"
+                                            >
+                                                <img
+                                                    src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`}
+                                                    alt={game.name}
+                                                    className="w-full h-32 object-cover"
+                                                    onError={(e) => {
+                                                        e.target.src = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/capsule_184x69.jpg`;
+                                                    }}
+                                                />
+                                                <div className="p-3">
+                                                    <h3 className="font-semibold text-white text-sm line-clamp-1 mb-2">{game.name}</h3>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        {score !== null && (
+                                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                                                score >= 70 ? 'bg-green-600/20 text-green-400' :
+                                                                score >= 40 ? 'bg-yellow-600/20 text-yellow-400' :
+                                                                'bg-red-600/20 text-red-400'
+                                                            }`}>
+                                                                {score}%
+                                                            </span>
+                                                        )}
+                                                        <span className="text-slate-400 text-xs">{priceText}</span>
+                                                    </div>
+                                                    {game.tags.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mb-2">
+                                                            {game.tags.slice(0, 3).map(tag => (
+                                                                <span key={tag} className="px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded text-xs">
+                                                                    {getTagName(tag)}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <a
+                                                        href={`https://store.steampowered.com/app/${game.appid}/`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-violet-400 text-xs hover:text-violet-300 transition"
+                                                    >
+                                                        {t.viewOnSteam} →
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
