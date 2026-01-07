@@ -634,7 +634,9 @@ async function evaluateStoreDescription(description, shortDescription, gameName,
   const plainDesc = description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 
   const prompt = isJa ? `
-あなたはSteamストアページの専門家です。Steam公式ガイドライン（Steamworks Documentation）に基づいて、以下のゲーム説明文を評価してください。
+あなたは日本語で回答するSteamストアページの専門家です。
+
+Steam公式ガイドライン（Steamworks Documentation）に基づいて、以下のゲーム説明文を評価してください。
 
 【Steam公式ガイドラインの評価基準】
 - 説明文に外部リンクを含めてはいけない
@@ -654,14 +656,12 @@ ${plainDesc.slice(0, 3000)}
 
 以下の観点で0-100点で評価してください：
 
-1. **ゲーム内容の明確さ** (contentClarity): どんなジャンルのゲームか、プレイヤーは何をするのかが明確に伝わるか
-2. **魅力・訴求力** (appeal): ゲームの独自性や面白さが伝わり、購入したくなるか
-3. **読みやすさ** (readability): 見出しや段落で整理され、スキャンしやすいか
-4. **情報の充実度** (completeness): プレイ時間、難易度、ゲームシステムなど購入判断に必要な情報があるか
+1. ゲーム内容の明確さ (contentClarity): どんなジャンルのゲームか、プレイヤーは何をするのかが明確に伝わるか
+2. 魅力・訴求力 (appeal): ゲームの独自性や面白さが伝わり、購入したくなるか
+3. 読みやすさ (readability): 見出しや段落で整理され、スキャンしやすいか
+4. 情報の充実度 (completeness): プレイ時間、難易度、ゲームシステムなど購入判断に必要な情報があるか
 
-【重要】すべての出力は必ず日本語で行ってください。
-
-以下のJSON形式で日本語で回答：
+必ず以下のJSON形式で日本語のみで回答してください。英語は使わないでください：
 {
   "scores": {
     "contentClarity": 75,
@@ -670,9 +670,18 @@ ${plainDesc.slice(0, 3000)}
     "completeness": 65
   },
   "overallScore": 72,
-  "summary": "全体的な評価の要約（日本語で1-2文）",
-  "goodPoints": ["良い点1（日本語）", "良い点2（日本語）"],
-  "improvements": ["改善提案1（日本語）", "改善提案2（日本語）", "改善提案3（日本語）"]
+  "summary": "（ここに日本語で評価の要約を書く）",
+  "goodPoints": ["（日本語で良い点1）", "（日本語で良い点2）", "（日本語で良い点3）"],
+  "improvements": ["（日本語で改善点1）", "（日本語で改善点2）", "（日本語で改善点3）"]
+}
+
+回答例：
+{
+  "scores": {"contentClarity": 78, "appeal": 72, "readability": 85, "completeness": 60},
+  "overallScore": 74,
+  "summary": "ゲームの世界観やビジュアルは魅力的に伝わりますが、具体的なゲームプレイの説明がやや不足しています。",
+  "goodPoints": ["パズルやアドベンチャー要素が分かりやすく説明されている", "ユニークな世界観が興味を引く", "複数のゲームプレイモードが紹介されている"],
+  "improvements": ["プレイ時間の目安を記載する", "難易度についての情報を追加する", "ジャンルを冒頭で明確にする"]
 }
 ` : `
 You are a Steam store page expert. Evaluate the following game description based on Steam's official guidelines (Steamworks Documentation).
