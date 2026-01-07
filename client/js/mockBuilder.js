@@ -115,8 +115,8 @@ const MockBuilder = {
         <button class="mock-builder-close">&times;</button>
 
         <div class="mock-builder-header">
-          <h2>${isJa ? 'AIゲームモック・ビルダー' : 'AI Game Mock Builder'}</h2>
-          <p class="mock-builder-subtitle">${isJa ? 'ゲームの詳細を入力すると、AIが理解してモックを生成します' : 'Describe your game in detail, AI will understand and generate a mock'}</p>
+          <h2>${isJa ? 'ゲームモック・ビルダー' : 'Game Mock Builder'}</h2>
+          <p class="mock-builder-subtitle">${isJa ? 'ゲームの詳細を入力すると、モックを生成します' : 'Describe your game in detail to generate a mock'}</p>
         </div>
 
         <div class="mock-builder-content">
@@ -146,7 +146,7 @@ const MockBuilder = {
 
             <!-- ゲームの詳細説明（重要！） -->
             <div class="mock-form-section">
-              <h3><span class="section-num">2</span>${isJa ? 'ゲームの詳細説明（AIが理解します）' : 'Detailed Game Description (AI will understand)'}</h3>
+              <h3><span class="section-num">2</span>${isJa ? 'ゲームの詳細説明' : 'Detailed Game Description'}</h3>
               <p class="mock-form-hint">${isJa
                 ? '具体的に書くほど、モックに反映されます。UI要素、ゲームシステム、操作方法など自由に記述してください。'
                 : 'The more specific you are, the better the mock will be. Describe UI elements, game systems, controls, etc.'}</p>
@@ -251,7 +251,7 @@ const MockBuilder = {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
-                ${isJa ? 'AIでモック生成' : 'Generate with AI'}
+                ${isJa ? 'モック生成' : 'Generate Mock'}
               </button>
             </div>
           </form>
@@ -346,7 +346,7 @@ const MockBuilder = {
     const isJa = Lang.current === 'ja';
 
     // ローディング表示
-    UI.showLoading(isJa ? 'AIがゲーム内容を解析中...' : 'AI is analyzing your game...');
+    UI.showLoading(isJa ? 'ゲーム内容を解析中...' : 'Analyzing your game...');
 
     try {
       // AIにゲーム内容を送信して解析

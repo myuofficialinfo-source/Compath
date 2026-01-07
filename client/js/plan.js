@@ -26,13 +26,13 @@ const UserPlan = {
         ja: [
           '全ツール利用可能',
           '検索・分析は無制限',
-          '基本的なAI分析',
+          '基本的な分析',
           'コミュニティサポート'
         ],
         en: [
           'Access to all tools',
           'Unlimited search & analysis',
-          'Basic AI analysis',
+          'Basic analysis',
           'Community support'
         ]
       }

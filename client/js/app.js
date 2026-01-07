@@ -121,7 +121,7 @@ const Lang = {
       heroTitle: 'Steam開発者のための<br>サポートツール',
       heroDescription: 'レビュー分析、市場調査、ユーザーフィードバックの可視化。<br>あなたのゲーム開発をデータで支援します。',
       toolReviewInsight: 'Steamレビュー分析',
-      toolReviewInsightDesc: 'レビューを要約・AIが分析します。<br>ポジ/ネガを可視化し、改善点を発見。',
+      toolReviewInsightDesc: 'レビューを要約・分析します。<br>ポジ/ネガを可視化し、改善点を発見。',
       toolStoreDoctor: 'ストアページ診断',
       toolStoreDoctorDesc: 'ストアページの見やすさ等をスコア化します。<br>改善点の洗い出しや調整の指針として使えます。',
       toolBlueOcean: 'ブルーオーシャン調査',
@@ -135,9 +135,9 @@ const Lang = {
       tagGameInfo: 'ゲーム情報',
       tagCompetitor: '競合比較',
       tagChart: 'チャート',
-      tagAI: 'AI分析',
+      tagAnalysis: '分析',
       tagWordcloud: 'ワードクラウド',
-      tagTranslate: '日本語翻訳',
+      tagImprove: '改善',
       tagDiagnosis: '自動診断',
       tagScore: 'スコア算出',
       tagOptimize: '最適化提案',
@@ -156,7 +156,7 @@ const Lang = {
       heroTitle: 'Development Tools for<br>Steam Developers',
       heroDescription: 'Review analysis, market research, user feedback visualization.<br>Supporting your game development with data.',
       toolReviewInsight: 'Steam Review Analysis',
-      toolReviewInsightDesc: 'Summarize and analyze reviews with AI.<br>Visualize positive/negative feedback and discover improvements.',
+      toolReviewInsightDesc: 'Summarize and analyze reviews.<br>Visualize positive/negative feedback and discover improvements.',
       toolStoreDoctor: 'Store Page Diagnosis',
       toolStoreDoctorDesc: 'Score your store page visibility and more.<br>Use it to identify improvements and guide your adjustments.',
       toolBlueOcean: 'Blue Ocean Scout',
@@ -170,9 +170,9 @@ const Lang = {
       tagGameInfo: 'Game Info',
       tagCompetitor: 'Competitor',
       tagChart: 'Charts',
-      tagAI: 'AI Analysis',
+      tagAnalysis: 'Analysis',
       tagWordcloud: 'Word Cloud',
-      tagTranslate: 'Translation',
+      tagImprove: 'Improve',
       tagDiagnosis: 'Auto Diagnosis',
       tagScore: 'Score Calc',
       tagOptimize: 'Optimization',
@@ -203,7 +203,7 @@ const Lang = {
 
     // ツールカード
     const toolCards = [
-      { id: 'btn-review-insight', nameKey: 'toolReviewInsight', descKey: 'toolReviewInsightDesc', tags: ['tagAI', 'tagWordcloud', 'tagTranslate'] },
+      { id: 'btn-review-insight', nameKey: 'toolReviewInsight', descKey: 'toolReviewInsightDesc', tags: ['tagAnalysis', 'tagWordcloud', 'tagImprove'] },
       { id: 'btn-store-doctor', nameKey: 'toolStoreDoctor', descKey: 'toolStoreDoctorDesc', tags: ['tagDiagnosis', 'tagScore', 'tagOptimize'] },
       { id: 'btn-blue-ocean', nameKey: 'toolBlueOcean', descKey: 'toolBlueOceanDesc', tags: ['tagMarket', 'tagNiche', 'tagTrend'] },
       { id: 'btn-launch-commander', nameKey: 'toolLaunchCommander', descKey: 'toolLaunchCommanderDesc', tags: ['tagGlobal', 'tagTiming', 'tagStrategy'] },
@@ -789,7 +789,7 @@ const ReviewInsight = {
       this.renderLanguageStats(reviewData.reviews.stats);
 
       // AI分析を並行実行（キーワード分析を深掘り版に変更）
-      UI.showLoading(isJa ? 'AIで分析中...' : 'Analyzing with AI...');
+      UI.showLoading(isJa ? '分析中...' : 'Analyzing...');
 
       // キーワード深掘り分析（失敗時は従来版にフォールバック）
       // appIdを渡してキャッシュを有効化
@@ -1050,8 +1050,8 @@ const ReviewInsight = {
     container.innerHTML = `
       <div class="summary-section">
         <h3 class="summary-title">
-          <span class="icon">🤖</span>
-          AI分析サマリー
+          <span class="icon">📊</span>
+          分析サマリー
         </h3>
         <div class="summary-grid">
           <div class="summary-column positive">
@@ -2781,8 +2781,8 @@ const BlueOcean = {
     container.innerHTML = `
       <div class="ai-analysis-section">
         <h3 class="competitors-title">
-          <span>🤖</span>
-          ${isJa ? 'AI市場分析' : 'AI Market Analysis'}
+          <span>📊</span>
+          ${isJa ? '市場分析' : 'Market Analysis'}
         </h3>
         <div class="analysis-grid">
           <div class="analysis-card">
@@ -2921,7 +2921,7 @@ const BlueOcean = {
       csv += `"${c.name}",${c.reviewCount || 0},${c.positiveRate || 0}%\n`;
     });
 
-    csv += `\n${isJa ? 'AI分析' : 'AI Analysis'}\n`;
+    csv += `\n${isJa ? '分析' : 'Analysis'}\n`;
     const ai = result.aiAnalysis || {};
     csv += `\n${isJa ? '市場の強み' : 'Market Strengths'}\n`;
     (ai.marketStrengths || []).forEach(s => csv += `"${s}"\n`);
@@ -3128,7 +3128,7 @@ const LaunchCommander = {
             <div class="form-section">
               <h3 class="form-section-title">
                 ${isJa ? 'ゲームの概要' : 'Game Description'}
-                <span class="optional">${isJa ? '任意・AIがより精度の高い戦略を生成' : 'Optional - helps AI generate better strategy'}</span>
+                <span class="optional">${isJa ? '任意・より精度の高い戦略を生成' : 'Optional - helps generate better strategy'}</span>
               </h3>
               <textarea id="lc-game-description" class="concept-textarea"
                 placeholder="${isJa ? 'ゲームの特徴、ストーリー、ユニークセリングポイントを記入してください（例：2Dドット絵のメトロイドヴァニア。ダークファンタジー世界で...' : 'Describe your game features, story, unique selling points (e.g., A 2D pixel-art metroidvania in a dark fantasy world...'}"
@@ -3986,7 +3986,7 @@ const VisualTrend = {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
-            ${isJa ? 'AIスコアランキング' : 'AI Score Ranking'}
+            ${isJa ? 'スコアランキング' : 'Score Ranking'}
           </button>
           <button class="vt-tab" data-tab="analysis">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4016,9 +4016,9 @@ const VisualTrend = {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
-              ${isJa ? 'AIでバナーをスコアリング' : 'Score Banners with AI'}
+              ${isJa ? 'バナーをスコアリング' : 'Score Banners'}
             </button>
-            <p class="vt-hint">${isJa ? '※ 上位6件をAIが純粋なビジュアル品質でスコアリングします' : '※ AI will score the top 6 banners by pure visual quality'}</p>
+            <p class="vt-hint">${isJa ? '※ 上位6件を純粋なビジュアル品質でスコアリングします' : '※ Top 6 banners will be scored by pure visual quality'}</p>
             <div id="vt-ranked-result"></div>
           </div>
         </div>
@@ -4031,7 +4031,7 @@ const VisualTrend = {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
                 </svg>
-                ${isJa ? 'AI でトレンドを分析' : 'Analyze Trends with AI'}
+                ${isJa ? 'トレンドを分析' : 'Analyze Trends'}
               </button>
               <button class="csv-export-btn ${UserPlan.canUse('exportCSV') ? '' : 'pro-only'}" onclick="VisualTrend.exportCSV()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4201,7 +4201,7 @@ const VisualTrend = {
   async loadRankedCapsules() {
     const container = document.getElementById('vt-ranked-result');
     const isJa = Lang.current === 'ja';
-    container.innerHTML = `<div class="vt-loading">${isJa ? 'AIがバナーを分析中...' : 'AI is analyzing banners...'}</div>`;
+    container.innerHTML = `<div class="vt-loading">${isJa ? 'バナーを分析中...' : 'Analyzing banners...'}</div>`;
 
     try {
       const response = await fetch(
@@ -4291,7 +4291,7 @@ const VisualTrend = {
         <div class="vt-capsule-image">
           <img src="${capsule.capsuleUrl}" alt="${UI.escapeHtml(capsule.name)}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22460%22 height=%22215%22><rect fill=%22%231a1a2e%22 width=%22100%25%22 height=%22100%25%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%236366f1%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2216%22>No Image</text></svg>';">
           <div class="vt-capsule-overlay">
-            <span class="vt-analyze-icon" title="${isJa ? 'AI分析' : 'AI Analysis'}">🔍</span>
+            <span class="vt-analyze-icon" title="${isJa ? '分析' : 'Analysis'}">🔍</span>
           </div>
         </div>
         <div class="vt-capsule-info">
@@ -4336,7 +4336,7 @@ const VisualTrend = {
       <div class="vt-modal-loading">
         <img src="${imgUrl}" alt="${UI.escapeHtml(capsule.name)}" onerror="this.onerror=null;this.src='${fallbackImg}';">
         <h2>${UI.escapeHtml(capsule.name)}</h2>
-        <p>${isJa ? 'AI分析中...' : 'Analyzing with AI...'}</p>
+        <p>${isJa ? '分析中...' : 'Analyzing...'}</p>
         <div class="loading-spinner"></div>
       </div>
     `;
@@ -4517,7 +4517,7 @@ const VisualTrend = {
     resultDiv.innerHTML = `
       <div class="vt-analyzing">
         <div class="loading-spinner"></div>
-        <p>${isJa ? 'AI がトレンドパターンを分析中...' : 'AI is analyzing trend patterns...'}</p>
+        <p>${isJa ? 'トレンドパターンを分析中...' : 'Analyzing trend patterns...'}</p>
       </div>
     `;
 
@@ -4623,7 +4623,7 @@ const VisualTrend = {
     resultDiv.innerHTML = `
       <div class="vt-analyzing">
         <div class="loading-spinner"></div>
-        <p>${isJa ? 'AI が画像を分析してトレンドと比較中...' : 'AI is comparing your image with trends...'}</p>
+        <p>${isJa ? '画像を分析してトレンドと比較中...' : 'Comparing your image with trends...'}</p>
       </div>
     `;
 
