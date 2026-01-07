@@ -4,6 +4,7 @@
  */
 
 const axios = require('axios');
+const aiService = require('./aiService');
 
 const STEAM_API_BASE = 'https://store.steampowered.com';
 
@@ -349,7 +350,7 @@ async function diagnoseStore(appId, options = {}) {
     // 各項目を診断
     const tagDiagnosis = diagnoseTag(tags, lang);
     const visualDiagnosis = diagnoseVisuals(gameData, lang);
-    const textDiagnosis = diagnoseText(gameData, lang);
+    const textDiagnosis = await diagnoseText(gameData, lang); // AI評価を含むためawait
     const basicDiagnosis = diagnoseBasicInfo(gameData, lang);
 
     // 総合スコア計算（テキスト診断の比重を上げ、基本情報の比重を下げた）
@@ -586,110 +587,118 @@ function diagnoseVisuals(gameData, lang = 'ja') {
 }
 
 /**
- * テキスト診断（加点方式）
- * 0点から始まり、良い要素があれば加点
+ * テキスト診断（ハイブリッド方式）
+ * - 構造チェック（ルールベース）: 画像、GIF、見出し、段落数
+ * - 内容の質（AI評価）: ゲームの説明が十分か、魅力的か、分かりやすいか
  */
-function diagnoseText(gameData, lang = 'ja') {
+async function diagnoseText(gameData, lang = 'ja') {
   const issues = [];
   const warnings = [];
   const passed = [];
-  let score = 0;
 
-  // Short Description チェック（最大20点）
   const shortDesc = gameData.short_description || '';
+  const detailedDesc = gameData.detailed_description || '';
+  const plainTextLength = detailedDesc.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length;
+
+  // === 構造チェック（ルールベース）===
+  const structureAnalysis = analyzeDescriptionStructure(detailedDesc, lang);
+  issues.push(...structureAnalysis.issues);
+  warnings.push(...structureAnalysis.warnings);
+  passed.push(...structureAnalysis.passed);
+
+  // 構造スコア（最大30点）: 画像/GIF、見出し、段落
+  const structureScore = structureAnalysis.score;
+
+  // === 内容の質（AI評価）===
+  let aiScore = 50; // デフォルト
+  let aiEvaluation = null;
+
+  // 説明文が存在する場合のみAI評価を実行
+  if (detailedDesc.length > 100) {
+    try {
+      console.log('[StoreDiagnosis] Calling AI evaluation...');
+      aiEvaluation = await aiService.evaluateStoreDescription(
+        detailedDesc,
+        shortDesc,
+        gameData.name || '',
+        lang
+      );
+      aiScore = aiEvaluation.overallScore || 50;
+      console.log('[StoreDiagnosis] AI evaluation score:', aiScore);
+
+      // AI評価の良い点をpassedに追加
+      if (aiEvaluation.goodPoints && aiEvaluation.goodPoints.length > 0) {
+        aiEvaluation.goodPoints.forEach(point => {
+          passed.push(`✨ ${point}`);
+        });
+      }
+
+      // AI評価の改善提案をwarningsに追加
+      if (aiEvaluation.improvements && aiEvaluation.improvements.length > 0) {
+        aiEvaluation.improvements.forEach(improvement => {
+          warnings.push({
+            type: 'suggestion',
+            message: `💡 ${improvement}`,
+            suggestion: ''
+          });
+        });
+      }
+
+    } catch (error) {
+      console.error('[StoreDiagnosis] AI evaluation failed:', error.message);
+      // AI評価に失敗した場合はデフォルトスコアを使用
+    }
+  } else if (detailedDesc.length === 0) {
+    issues.push({
+      type: 'critical',
+      message: getMsg(lang, 'textCriticalNoDetailedDesc'),
+      suggestion: getMsg(lang, 'textSuggestionNoDetailedDesc')
+    });
+    aiScore = 0;
+  } else {
+    issues.push({
+      type: 'critical',
+      message: lang === 'ja'
+        ? `詳細説明文が非常に短いです（${plainTextLength}文字）`
+        : `Detailed description is very short (${plainTextLength} characters)`,
+      suggestion: lang === 'ja'
+        ? 'ゲームの特徴、世界観、システムを詳しく説明してください。'
+        : 'Explain your game features, world, and systems in detail.'
+    });
+    aiScore = 20;
+  }
+
+  // Short Description チェック（別途）
   if (shortDesc.length === 0) {
     issues.push({
       type: 'critical',
       message: getMsg(lang, 'textCriticalNoShortDesc'),
       suggestion: getMsg(lang, 'textSuggestionNoShortDesc')
     });
-    // 0点
   } else if (shortDesc.length < 50) {
-    issues.push({
-      type: 'critical',
-      message: getMsg(lang, 'textWarningShortDescTooShort', shortDesc.length),
-      suggestion: getMsg(lang, 'textSuggestionShortDescTooShort')
-    });
-    score += 5; // 最低限
-  } else if (shortDesc.length < 100) {
     warnings.push({
       type: 'warning',
       message: getMsg(lang, 'textWarningShortDescTooShort', shortDesc.length),
       suggestion: getMsg(lang, 'textSuggestionShortDescTooShort')
     });
-    score += 10;
-  } else if (shortDesc.length > 300) {
-    warnings.push({
-      type: 'warning',
-      message: getMsg(lang, 'textWarningShortDescTooLong', shortDesc.length),
-      suggestion: getMsg(lang, 'textSuggestionShortDescTooLong')
-    });
-    score += 15; // 長すぎても減点はしない
   } else {
     passed.push(getMsg(lang, 'textPassedShortDesc', shortDesc.length));
-    score += 20; // 満点
   }
 
-  // Detailed Description チェック（最大40点）
-  const detailedDesc = gameData.detailed_description || '';
-  const detailedDescEn = gameData.detailed_description_en || '';
-  // HTMLタグを除去したプレーンテキストの長さで判断
-  const plainTextLength = detailedDesc.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length;
-
-  if (detailedDesc.length === 0) {
-    issues.push({
-      type: 'critical',
-      message: getMsg(lang, 'textCriticalNoDetailedDesc'),
-      suggestion: getMsg(lang, 'textSuggestionNoDetailedDesc')
-    });
-    // 0点
-  } else if (plainTextLength < 200) {
-    issues.push({
-      type: 'critical',
-      message: lang === 'ja'
-        ? `詳細説明文が非常に短いです（実質${plainTextLength}文字）`
-        : `Detailed description is very short (${plainTextLength} characters)`,
-      suggestion: lang === 'ja'
-        ? 'ゲームの特徴、世界観、システムを詳しく説明してください。最低500文字以上を推奨します。'
-        : 'Explain your game features, world, and systems in detail. Minimum 500 characters recommended.'
-    });
-    score += 5; // 最低限
-  } else if (plainTextLength < 500) {
-    warnings.push({
-      type: 'warning',
-      message: lang === 'ja'
-        ? `詳細説明文が短めです（実質${plainTextLength}文字 / 推奨500文字以上）`
-        : `Detailed description is short (${plainTextLength} characters / 500+ recommended)`,
-      suggestion: getMsg(lang, 'textSuggestionDetailedDescShort')
-    });
-    score += 15;
-  } else if (plainTextLength < 1000) {
-    passed.push(getMsg(lang, 'textPassedDetailedDesc'));
-    score += 30;
-  } else {
-    passed.push(lang === 'ja'
-      ? `詳細説明文: ${plainTextLength}文字（十分な量）`
-      : `Detailed description: ${plainTextLength} characters (sufficient)`);
-    score += 40; // 1000文字以上で満点
-  }
-
-  // 詳細説明文の深い分析（最大40点）
-  const descAnalysis = analyzeDescriptionQualityAdditive(detailedDesc, detailedDescEn, lang);
-
-  // 分析結果を統合
-  issues.push(...descAnalysis.issues);
-  warnings.push(...descAnalysis.warnings);
-  passed.push(...descAnalysis.passed);
-  score += descAnalysis.bonus;
+  // 総合スコア計算: 構造30% + AI内容評価70%
+  const totalScore = Math.round(structureScore * 0.30 + aiScore * 0.70);
 
   return {
-    score: Math.min(100, score),
+    score: Math.min(100, totalScore),
     maxScore: 40,
-    weightedScore: Math.min(100, score) * 0.40,
+    weightedScore: Math.min(100, totalScore) * 0.40,
     shortDescLength: shortDesc.length,
     detailedDescLength: detailedDesc.length,
     plainTextLength,
-    descriptionAnalysis: descAnalysis.details,
+    structureScore,
+    aiScore,
+    aiEvaluation,
+    descriptionAnalysis: structureAnalysis.details,
     issues,
     warnings,
     passed
@@ -697,242 +706,94 @@ function diagnoseText(gameData, lang = 'ja') {
 }
 
 /**
- * 説明文の品質を深く分析（加点方式）
+ * 説明文の構造を分析（ルールベース）
+ * 画像/GIF、見出し、段落数をチェック
  */
-function analyzeDescriptionQualityAdditive(descJp, descEn, lang = 'ja') {
+function analyzeDescriptionStructure(descJp, lang = 'ja') {
   const issues = [];
   const warnings = [];
   const passed = [];
-  let bonus = 0;
+  let score = 0;
   const details = {};
 
-  // HTMLタグを除去したプレーンテキストを取得
-  const plainText = descJp.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-  const plainTextEn = descEn.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  // === 1. 画像/GIFの有無チェック（最大40点）===
+  const imgMatches = descJp.match(/<img[^>]*>/gi) || [];
+  const videoMatches = descJp.match(/<video[^>]*>/gi) || [];
+  const gifMatches = descJp.match(/\.gif/gi) || [];
+  const hasImages = imgMatches.length > 0 || videoMatches.length > 0;
+  const hasGif = gifMatches.length > 0 || videoMatches.length > 0;
 
-  // === 1. 画像/GIFの有無チェック ===
-  const checkForImages = (text) => {
-    return text.includes('<img') ||
-           text.includes('[img]') ||
-           text.includes('steamcdn') ||
-           text.includes('clan.cloudflare.steamstatic.com') ||
-           text.includes('cdn.cloudflare.steamstatic.com') ||
-           text.includes('steamstatic.com') ||
-           text.includes('steampowered.com/') ||
-           /\.(gif|png|jpg|jpeg|webp)/i.test(text) ||
-           text.includes('src="http') ||
-           text.includes("src='http");
-  };
+  details.imageCount = imgMatches.length + videoMatches.length;
+  details.hasGif = hasGif;
 
-  const hasImagesJp = checkForImages(descJp);
-  const hasImagesEn = checkForImages(descEn);
-  const hasImages = hasImagesJp || hasImagesEn;
-
-  // 画像の数をカウント
-  const imageCount = (descJp.match(/<img/gi) || []).length +
-                     (descEn.match(/<img/gi) || []).length;
-
-  // GIF検出：様々なパターンに対応
-  // Steam CDNのGIFは .gif 拡張子、またはアニメーション関連のパラメータを持つ
-  const combinedDesc = descJp + descEn;
-  const gifPatterns = [
-    /\.gif/gi,                           // .gif 拡張子
-    /animation/gi,                        // animationパラメータ
-    /animated/gi,                         // animated属性
-    /webm/gi,                             // webm動画（GIF代替）
-    /mp4/gi,                              // mp4動画
-    /autoplay/gi,                         // autoplay属性（動画の兆候）
-    /loop/gi,                             // loop属性（GIF/動画の兆候）
-  ];
-
-  // より柔軟なGIF検出
-  let gifCount = 0;
-  for (const pattern of gifPatterns) {
-    const matches = combinedDesc.match(pattern);
-    if (matches) {
-      gifCount += matches.length;
-    }
-  }
-
-  // Steam CDN の画像URLパターンからGIFを検出
-  // 例: https://clan.cloudflare.steamstatic.com/images/xxx/yyy.gif
-  const steamGifMatches = combinedDesc.match(/steamstatic\.com[^"'\s]*\.gif/gi) || [];
-  const steamCdnGifMatches = combinedDesc.match(/steamcdn[^"'\s]*\.gif/gi) || [];
-  gifCount += steamGifMatches.length + steamCdnGifMatches.length;
-
-  // デバッグ: 画像URLの詳細を出力
-  const imgSrcMatches = combinedDesc.match(/src=["'][^"']+["']/gi) || [];
-  console.log('[StoreDiagnosis] Image sources found:', imgSrcMatches.length);
-  if (imgSrcMatches.length > 0) {
-    console.log('[StoreDiagnosis] First 3 image sources:', imgSrcMatches.slice(0, 3));
-  }
-  console.log('[StoreDiagnosis] GIF detection count:', gifCount);
-
-  details.imageCount = Math.max(imageCount, (descJp.match(/src=/gi) || []).length);
-  details.hasGif = gifCount > 0;
-
-  // 画像/GIFの加点（最大10点）
   if (!hasImages && descJp.length > 0) {
     warnings.push({
       type: 'warning',
-      message: getMsg(lang, 'descWarningNoImages'),
-      suggestion: getMsg(lang, 'descSuggestionNoImages')
+      message: lang === 'ja' ? '説明文に画像/動画が含まれていません' : 'No images/videos in description',
+      suggestion: lang === 'ja' ? 'スクリーンショットやGIFを追加すると視覚的に魅力的になります' : 'Add screenshots or GIFs to make it visually appealing'
     });
-    // 0点
-  } else if (hasImages && gifCount === 0) {
-    passed.push(getMsg(lang, 'descPassedImagesOnly'));
-    details.suggestion = getMsg(lang, 'descGifSuggestion');
-    bonus += 5; // 静止画のみ
-  } else if (hasImages) {
-    passed.push(getMsg(lang, 'descPassedImagesGifs'));
-    if (gifCount > 0) {
-      passed.push(getMsg(lang, 'descPassedGifCount', gifCount));
+  } else if (hasImages && !hasGif) {
+    passed.push(lang === 'ja' ? '詳細説明文に画像が含まれています' : 'Description contains images');
+    score += 25;
+  } else if (hasImages && hasGif) {
+    passed.push(lang === 'ja' ? '詳細説明文に画像/GIFが含まれています' : 'Description contains images/GIFs');
+    if (videoMatches.length > 0) {
+      passed.push(lang === 'ja' ? `GIF/動画: ${videoMatches.length}個検出（動きが伝わります）` : `GIF/Video: ${videoMatches.length} found (shows motion)`);
     }
-    bonus += 10; // GIF/動画あり
+    score += 40;
   }
 
-  // === 2. 構造・フォーマットの分析 ===
-  // 見出しタグの使用（最大8点）- 厳格化: h1/h2タグのみ、boldは除外
-  const hasH1 = /<h1[^>]*>/i.test(descJp) || /<h1[^>]*>/i.test(descEn);
-  const hasH2 = /<h2[^>]*>/i.test(descJp) || /<h2[^>]*>/i.test(descEn);
-  // Steamの説明文では[h1][/h1]形式も使われる
-  const hasSteamH1 = /\[h1\]/i.test(descJp) || /\[h1\]/i.test(descEn);
-  const hasSteamH2 = /\[h2\]/i.test(descJp) || /\[h2\]/i.test(descEn);
+  // === 2. 見出しの使用チェック（最大30点）===
+  const hasH1 = /<h1[^>]*>/i.test(descJp);
+  const hasH2 = /<h2[^>]*>/i.test(descJp);
+  const hasSteamH1 = /\[h1\]/i.test(descJp);
+  const hasSteamH2 = /\[h2\]/i.test(descJp);
   const hasHeadings = hasH1 || hasH2 || hasSteamH1 || hasSteamH2;
+  const headingCount = ((descJp).match(/<h[12][^>]*>|\[h[12]\]/gi) || []).length;
 
   details.hasHeadings = hasHeadings;
-  details.headingCount = ((descJp + descEn).match(/<h[12][^>]*>|\[h[12]\]/gi) || []).length;
+  details.headingCount = headingCount;
 
   if (!hasHeadings) {
     warnings.push({
       type: 'warning',
-      message: getMsg(lang, 'descWarningNoHeadings'),
-      suggestion: getMsg(lang, 'descSuggestionNoHeadings')
+      message: lang === 'ja' ? '見出し・強調が使用されていません' : 'No headings used',
+      suggestion: lang === 'ja' ? '見出し（h1/h2タグ）を使うと読みやすくなります' : 'Use headings (h1/h2 tags) for better readability'
     });
-    // 0点
-  } else if (details.headingCount >= 3) {
-    passed.push(getMsg(lang, 'descPassedHeadings'));
-    bonus += 8; // 複数の見出しで満点
+  } else if (headingCount >= 3) {
+    passed.push(lang === 'ja' ? '見出し・強調が使用されています' : 'Headings are used');
+    score += 30;
   } else {
-    passed.push(getMsg(lang, 'descPassedHeadings'));
-    bonus += 4; // 見出しがあるが少ない
+    passed.push(lang === 'ja' ? '見出し・強調が使用されています' : 'Headings are used');
+    score += 15;
   }
 
-  // リスト形式の使用（最大5点）- 厳格化: HTMLリストタグ or 連続した箇条書き記号
-  const hasHtmlList = /<ul[^>]*>|<ol[^>]*>|<li[^>]*>/i.test(descJp);
-  const hasSteamList = /\[list\]|\[\*\]/i.test(descJp);
-  // 箇条書き記号が3回以上連続で使われているかチェック（行頭に）
-  const bulletPointMatches = (descJp.match(/(<br[^>]*>|^)\s*[・●★◆■▶►◇○]\s*[^\s<]/gim) || []).length;
-  const hasBulletPoints = bulletPointMatches >= 3;
-  const hasList = hasHtmlList || hasSteamList || hasBulletPoints;
-
-  details.hasList = hasList;
-  details.bulletPointCount = bulletPointMatches;
-
-  if (!hasList) {
-    warnings.push({
-      type: 'warning',
-      message: getMsg(lang, 'descWarningNoList'),
-      suggestion: getMsg(lang, 'descSuggestionNoList')
-    });
-    // 0点
-  } else {
-    passed.push(getMsg(lang, 'descPassedList'));
-    bonus += 5;
-  }
-
-  // === 3. 改行・段落の分析（最大7点）- 厳格化 ===
+  // === 3. 段落・改行チェック（最大30点）===
   const brCount = (descJp.match(/<br[^>]*>/gi) || []).length;
   const pCount = (descJp.match(/<\/p>/gi) || []).length;
   const paragraphBreaks = brCount + pCount;
 
-  // 100文字あたりの改行数を計算（より厳しく）
-  const breaksPerHundred = plainText.length > 0
-    ? (paragraphBreaks / plainText.length) * 100
-    : 0;
-
   details.paragraphBreaks = paragraphBreaks;
-  details.breaksPerHundred = breaksPerHundred;
 
-  console.log('[StoreDiagnosis] Break analysis:', { brCount, pCount, paragraphBreaks, plainTextLength: plainText.length, breaksPerHundred });
-
-  // 厳格な改行チェック:
-  // - 最低でも100文字あたり3回以上の改行（3%）
-  // - かつ絶対数で5個以上
-  const hasGoodBreaks = breaksPerHundred >= 3 && paragraphBreaks >= 8;
-  const hasMinimalBreaks = breaksPerHundred >= 2 && paragraphBreaks >= 5;
-
-  if (!hasMinimalBreaks) {
+  if (paragraphBreaks < 5) {
     warnings.push({
       type: 'warning',
-      message: getMsg(lang, 'descWarningNoBreaks'),
-      suggestion: getMsg(lang, 'descSuggestionNoBreaks')
+      message: lang === 'ja' ? '改行・段落が少なく、文字の壁になっています' : 'Few paragraph breaks, text wall',
+      suggestion: lang === 'ja' ? '2〜3文ごとに改行を入れると読みやすくなります' : 'Add line breaks every 2-3 sentences'
     });
-    // 0点
-  } else if (hasGoodBreaks) {
-    passed.push(getMsg(lang, 'descPassedBreaks'));
-    bonus += 7; // 十分な改行で満点
+  } else if (paragraphBreaks >= 10) {
+    passed.push(lang === 'ja' ? '適切に段落分けされています' : 'Well-structured paragraphs');
+    score += 30;
   } else {
-    // hasMinimalBreaks だが hasGoodBreaks ではない
-    // 最低限の改行はあるが、もう少しほしい - 加点なし、警告も出さない
+    passed.push(lang === 'ja' ? '段落分けがあります' : 'Has paragraph breaks');
+    score += 15;
   }
-
-  // === 4. ゲーム内容の明確さ分析（最大10点）- 厳格化 ===
-  // 単にキーワードがあるだけでなく、説明として使われているか
-  const gameplayKeywords = [
-    // ジャンル系（より具体的なものに絞る）
-    'ローグライク', 'ローグライト', 'メトロイドヴァニア', 'ソウルライク', 'ハクスラ',
-    'ターン制', 'リアルタイム', 'タワーディフェンス', 'シューティング', 'ビジュアルノベル',
-    'Roguelike', 'Roguelite', 'Metroidvania', 'Souls-like', 'Turn-Based',
-    // システム系（具体的な遊び方を示すもの）
-    'レベルアップ', 'スキルツリー', 'クラフト', '建築', '探索', 'ダンジョン',
-    '装備', 'カスタマイズ', 'マルチプレイ', '協力プレイ', 'PvP',
-    'level up', 'skill tree', 'crafting', 'building', 'dungeon', 'equipment'
-  ];
-
-  const combinedText = (plainText + ' ' + plainTextEn).toLowerCase();
-  const foundKeywords = gameplayKeywords.filter(kw =>
-    combinedText.includes(kw.toLowerCase())
-  );
-
-  // 重複を除去
-  const uniqueKeywords = [...new Set(foundKeywords)];
-  details.gameplayKeywordsFound = uniqueKeywords.length;
-  details.foundKeywords = uniqueKeywords.slice(0, 10);
-
-  // より厳しく: 5個以上で満点、3-4個で半分、それ以下は0
-  if (uniqueKeywords.length < 3) {
-    warnings.push({
-      type: 'warning',
-      message: getMsg(lang, 'descWarningNoGameplay'),
-      suggestion: getMsg(lang, 'descSuggestionNoGameplay')
-    });
-    // 0点
-  } else if (uniqueKeywords.length >= 5) {
-    passed.push(getMsg(lang, 'descPassedGameplayDetailed'));
-    bonus += 10;
-  } else {
-    passed.push(getMsg(lang, 'descPassedGameplayBasic'));
-    bonus += 5;
-  }
-
-  // デバッグログ
-  console.log('[StoreDiagnosis] Description analysis:', {
-    plainTextLength: plainText.length,
-    imageCount: details.imageCount,
-    hasGif: details.hasGif,
-    hasHeadings: details.hasHeadings,
-    hasList: details.hasList,
-    paragraphBreaks: details.paragraphBreaks,
-    gameplayKeywordsFound: details.gameplayKeywordsFound,
-    bonus
-  });
 
   return {
+    score: Math.min(100, score),
     issues,
     warnings,
     passed,
-    bonus,
     details
   };
 }

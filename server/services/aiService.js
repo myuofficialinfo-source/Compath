@@ -617,6 +617,111 @@ function normalizeKeyword(word) {
   return word;
 }
 
+/**
+ * ストアページの説明文の品質をAIで評価
+ * @param {string} description - 説明文（HTML）
+ * @param {string} shortDescription - 短い説明文
+ * @param {string} gameName - ゲーム名
+ * @param {string} lang - 言語（ja/en）
+ * @returns {Promise<Object>} 評価結果
+ */
+async function evaluateStoreDescription(description, shortDescription, gameName, lang = 'ja') {
+  const isJa = lang === 'ja';
+  const model = getGeminiModel();
+
+  // HTMLタグを除去してプレーンテキストに
+  const plainDesc = description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+
+  const prompt = isJa ? `
+あなたはSteamストアページの専門家です。以下のゲーム説明文を評価してください。
+
+【ゲーム名】
+${gameName}
+
+【短い説明文】
+${shortDescription}
+
+【詳細説明文】
+${plainDesc.slice(0, 3000)}
+
+以下の観点で0-100点で評価し、具体的な理由と改善提案を出力してください：
+
+1. **ゲーム内容の明確さ** (contentClarity): どんなゲームか、何をするのかが明確に伝わるか
+2. **魅力・訴求力** (appeal): 購入したくなるような魅力が伝わるか
+3. **読みやすさ** (readability): 文章が整理されていて読みやすいか
+4. **情報の充実度** (completeness): 必要な情報（ジャンル、特徴、プレイ内容）が揃っているか
+
+以下のJSON形式で回答：
+{
+  "scores": {
+    "contentClarity": 75,
+    "appeal": 80,
+    "readability": 70,
+    "completeness": 65
+  },
+  "overallScore": 72,
+  "summary": "全体的な評価の要約（1-2文）",
+  "goodPoints": ["良い点1", "良い点2"],
+  "improvements": ["改善提案1", "改善提案2", "改善提案3"]
+}
+` : `
+You are a Steam store page expert. Evaluate the following game description.
+
+[Game Name]
+${gameName}
+
+[Short Description]
+${shortDescription}
+
+[Detailed Description]
+${plainDesc.slice(0, 3000)}
+
+Evaluate on a scale of 0-100 for each aspect, and provide specific reasons and improvement suggestions:
+
+1. **Content Clarity** (contentClarity): Is it clear what kind of game this is and what you do?
+2. **Appeal** (appeal): Does it convey compelling reasons to purchase?
+3. **Readability** (readability): Is the text well-organized and easy to read?
+4. **Completeness** (completeness): Does it include necessary info (genre, features, gameplay)?
+
+Respond in the following JSON format:
+{
+  "scores": {
+    "contentClarity": 75,
+    "appeal": 80,
+    "readability": 70,
+    "completeness": 65
+  },
+  "overallScore": 72,
+  "summary": "Overall evaluation summary (1-2 sentences)",
+  "goodPoints": ["Good point 1", "Good point 2"],
+  "improvements": ["Improvement 1", "Improvement 2", "Improvement 3"]
+}
+`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    console.log('[AI] Store description evaluation response:', text.substring(0, 200));
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('説明文評価エラー:', error);
+    // エラー時はデフォルト値を返す
+    return {
+      scores: {
+        contentClarity: 50,
+        appeal: 50,
+        readability: 50,
+        completeness: 50
+      },
+      overallScore: 50,
+      summary: isJa ? 'AI評価を取得できませんでした' : 'Could not get AI evaluation',
+      goodPoints: [],
+      improvements: []
+    };
+  }
+}
+
 module.exports = {
   generateSummary,
   transformToConstructive,
@@ -624,5 +729,6 @@ module.exports = {
   extractKeywordsDeep,
   analyzeCommunityThreads,
   filterNGWords,
-  normalizeKeyword
+  normalizeKeyword,
+  evaluateStoreDescription
 };
