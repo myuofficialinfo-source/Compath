@@ -95,15 +95,30 @@
   text-align: center;
 }
 
-.legal-footer a {
-  color: var(--accent-primary);
-  text-decoration: none;
-  font-size: 0.95rem;
-  transition: opacity 0.2s ease;
+.legal-footer p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
-.legal-footer a:hover {
-  opacity: 0.8;
+.legal-footer .footer-links {
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+.legal-footer .footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.legal-footer .footer-links a:hover {
+  color: var(--accent-primary);
+}
+
+.legal-footer .footer-separator {
+  margin: 0 12px;
+  color: var(--text-muted);
+  opacity: 0.5;
 }
 
 /* 言語切り替え（ヘッダー内） */

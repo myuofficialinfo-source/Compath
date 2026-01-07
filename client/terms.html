@@ -84,7 +84,12 @@
     </main>
 
     <footer class="legal-footer">
-      <a href="/">← ホームに戻る</a>
+      <p>Compath</p>
+      <div class="footer-links">
+        <a href="/privacy" data-i18n="footerPrivacy">プライバシーポリシー</a>
+        <span class="footer-separator">|</span>
+        <a href="/terms" data-i18n="footerTerms">利用規約</a>
+      </div>
     </footer>
   </div>
 
@@ -119,7 +124,8 @@
         termsSection7Title: '7. 規約の変更',
         termsSection7Text: '本規約は予告なく変更される場合があります。変更後もサービスを利用された場合は、変更後の規約に同意したものとみなします。',
         legalUpdated: '最終更新：2025年1月',
-        backHome: '← ホームに戻る'
+        footerPrivacy: 'プライバシーポリシー',
+        footerTerms: '利用規約'
       },
       en: {
         termsTitle: 'Terms of Service',
@@ -149,7 +155,8 @@
         termsSection7Title: '7. Changes to Terms',
         termsSection7Text: 'These terms may be changed without notice. Continued use of the service after changes constitutes acceptance of the modified terms.',
         legalUpdated: 'Last updated: January 2025',
-        backHome: '← Back to Home'
+        footerPrivacy: 'Privacy Policy',
+        footerTerms: 'Terms of Service'
       }
     };
 
@@ -163,7 +170,6 @@
           el.textContent = translations[lang][key];
         }
       });
-      document.querySelector('.legal-footer a').textContent = translations[lang].backHome;
       document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
       });
