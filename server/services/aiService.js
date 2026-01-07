@@ -619,6 +619,7 @@ function normalizeKeyword(word) {
 
 /**
  * ストアページの説明文の品質をAIで評価
+ * Steam公式ガイドライン（partner.steamgames.com）に基づく評価
  * @param {string} description - 説明文（HTML）
  * @param {string} shortDescription - 短い説明文
  * @param {string} gameName - ゲーム名
@@ -633,7 +634,14 @@ async function evaluateStoreDescription(description, shortDescription, gameName,
   const plainDesc = description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 
   const prompt = isJa ? `
-あなたはSteamストアページの専門家です。以下のゲーム説明文を評価してください。
+あなたはSteamストアページの専門家です。Steam公式ガイドライン（Steamworks Documentation）に基づいて、以下のゲーム説明文を評価してください。
+
+【Steam公式ガイドラインの評価基準】
+- 説明文に外部リンクを含めてはいけない
+- Steam UIを模倣した画像（ウィッシュリストボタン、価格表示など）は禁止
+- 他の製品の宣伝は禁止
+- ゲームの特徴、世界観、遊び方が明確に伝わるべき
+- 視覚的な要素（GIF、スクリーンショット）を活用すべき
 
 【ゲーム名】
 ${gameName}
@@ -644,14 +652,16 @@ ${shortDescription}
 【詳細説明文】
 ${plainDesc.slice(0, 3000)}
 
-以下の観点で0-100点で評価し、具体的な理由と改善提案を出力してください：
+以下の観点で0-100点で評価してください：
 
-1. **ゲーム内容の明確さ** (contentClarity): どんなゲームか、何をするのかが明確に伝わるか
-2. **魅力・訴求力** (appeal): 購入したくなるような魅力が伝わるか
-3. **読みやすさ** (readability): 文章が整理されていて読みやすいか
-4. **情報の充実度** (completeness): 必要な情報（ジャンル、特徴、プレイ内容）が揃っているか
+1. **ゲーム内容の明確さ** (contentClarity): どんなジャンルのゲームか、プレイヤーは何をするのかが明確に伝わるか
+2. **魅力・訴求力** (appeal): ゲームの独自性や面白さが伝わり、購入したくなるか
+3. **読みやすさ** (readability): 見出しや段落で整理され、スキャンしやすいか
+4. **情報の充実度** (completeness): プレイ時間、難易度、ゲームシステムなど購入判断に必要な情報があるか
 
-以下のJSON形式で回答：
+【重要】すべての出力は必ず日本語で行ってください。
+
+以下のJSON形式で日本語で回答：
 {
   "scores": {
     "contentClarity": 75,
@@ -660,12 +670,19 @@ ${plainDesc.slice(0, 3000)}
     "completeness": 65
   },
   "overallScore": 72,
-  "summary": "全体的な評価の要約（1-2文）",
-  "goodPoints": ["良い点1", "良い点2"],
-  "improvements": ["改善提案1", "改善提案2", "改善提案3"]
+  "summary": "全体的な評価の要約（日本語で1-2文）",
+  "goodPoints": ["良い点1（日本語）", "良い点2（日本語）"],
+  "improvements": ["改善提案1（日本語）", "改善提案2（日本語）", "改善提案3（日本語）"]
 }
 ` : `
-You are a Steam store page expert. Evaluate the following game description.
+You are a Steam store page expert. Evaluate the following game description based on Steam's official guidelines (Steamworks Documentation).
+
+[Steam Official Guidelines - Evaluation Criteria]
+- Description must not contain external links
+- Images mimicking Steam UI (wishlist buttons, price displays) are prohibited
+- Promoting other products is prohibited
+- Game features, world, and gameplay should be clearly conveyed
+- Visual elements (GIFs, screenshots) should be utilized
 
 [Game Name]
 ${gameName}
@@ -676,12 +693,12 @@ ${shortDescription}
 [Detailed Description]
 ${plainDesc.slice(0, 3000)}
 
-Evaluate on a scale of 0-100 for each aspect, and provide specific reasons and improvement suggestions:
+Evaluate on a scale of 0-100 for each aspect:
 
-1. **Content Clarity** (contentClarity): Is it clear what kind of game this is and what you do?
-2. **Appeal** (appeal): Does it convey compelling reasons to purchase?
-3. **Readability** (readability): Is the text well-organized and easy to read?
-4. **Completeness** (completeness): Does it include necessary info (genre, features, gameplay)?
+1. **Content Clarity** (contentClarity): Is it clear what genre the game is and what the player does?
+2. **Appeal** (appeal): Does it convey the game's uniqueness and fun, making players want to buy?
+3. **Readability** (readability): Is it organized with headings and paragraphs, easy to scan?
+4. **Completeness** (completeness): Does it include info needed for purchase decisions (playtime, difficulty, game systems)?
 
 Respond in the following JSON format:
 {
