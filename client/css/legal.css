@@ -88,6 +88,34 @@
   font-size: 0.9rem;
 }
 
+/* お問い合わせリンク */
+.contact-link {
+  margin-top: 16px;
+}
+
+.contact-link a {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.contact-link a:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.contact-link a svg {
+  flex-shrink: 0;
+}
+
 .legal-footer {
   padding: 30px 40px;
   background: var(--bg-secondary);

@@ -14,19 +14,24 @@
 </head>
 <body>
   <div class="legal-page">
-    <header class="legal-header">
-      <a href="/" class="legal-logo">
-        <img src="/images/icom.png" alt="Compath" class="legal-logo-img">
-        <span>Compath</span>
-      </a>
-      <div class="language-switcher">
-        <button class="lang-btn active" data-lang="ja">日本語</button>
-        <button class="lang-btn" data-lang="en">EN</button>
+    <header class="tool-header legal-header">
+      <div class="tool-header-left">
+        <a href="/" class="back-button" title="ホームに戻る">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <h1 class="tool-title" data-i18n="privacyTitle">プライバシーポリシー</h1>
+      </div>
+      <div class="tool-header-right">
+        <div class="language-switcher">
+          <button class="lang-btn active" data-lang="ja">日本語</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
       </div>
     </header>
 
     <main class="legal-content">
-      <h1 class="legal-title" data-i18n="privacyTitle">プライバシーポリシー</h1>
 
       <section class="legal-section">
         <h2 data-i18n="privacySection1Title">1. 収集する情報</h2>
@@ -66,6 +71,14 @@
       <section class="legal-section">
         <h2 data-i18n="privacySection6Title">6. お問い合わせ</h2>
         <p data-i18n="privacySection6Text">プライバシーに関するお問い合わせは、X（旧Twitter）にてお受けしております。</p>
+        <p class="contact-link">
+          <a href="https://x.com/myu060309" target="_blank" rel="noopener noreferrer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span data-i18n="contactX">@myu060309</span>
+          </a>
+        </p>
       </section>
 
       <p class="legal-updated" data-i18n="legalUpdated">最終更新：2025年1月</p>
@@ -104,6 +117,7 @@
         privacySection5Text: '本サービスではVercel Analyticsを使用して匿名化されたアクセスデータを収集・分析しています。これらのデータから個人を特定することはできません。',
         privacySection6Title: '6. お問い合わせ',
         privacySection6Text: 'プライバシーに関するお問い合わせは、X（旧Twitter）にてお受けしております。',
+        contactX: '@myu060309',
         legalUpdated: '最終更新：2025年1月',
         footerPrivacy: 'プライバシーポリシー',
         footerTerms: '利用規約'
@@ -128,6 +142,7 @@
         privacySection5Text: 'This service uses Vercel Analytics to collect and analyze anonymized access data. This data cannot be used to identify individuals.',
         privacySection6Title: '6. Contact',
         privacySection6Text: 'For privacy-related inquiries, please contact us via X (formerly Twitter).',
+        contactX: '@myu060309',
         legalUpdated: 'Last updated: January 2025',
         footerPrivacy: 'Privacy Policy',
         footerTerms: 'Terms of Service'

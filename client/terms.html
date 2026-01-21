@@ -14,19 +14,24 @@
 </head>
 <body>
   <div class="legal-page">
-    <header class="legal-header">
-      <a href="/" class="legal-logo">
-        <img src="/images/icom.png" alt="Compath" class="legal-logo-img">
-        <span>Compath</span>
-      </a>
-      <div class="language-switcher">
-        <button class="lang-btn active" data-lang="ja">日本語</button>
-        <button class="lang-btn" data-lang="en">EN</button>
+    <header class="tool-header legal-header">
+      <div class="tool-header-left">
+        <a href="/" class="back-button" title="ホームに戻る">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <h1 class="tool-title" data-i18n="termsTitle">利用規約</h1>
+      </div>
+      <div class="tool-header-right">
+        <div class="language-switcher">
+          <button class="lang-btn active" data-lang="ja">日本語</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
       </div>
     </header>
 
     <main class="legal-content">
-      <h1 class="legal-title" data-i18n="termsTitle">利用規約</h1>
 
       <section class="legal-section">
         <h2 data-i18n="termsSection1Title">1. サービスの概要</h2>
@@ -80,6 +85,19 @@
         <p data-i18n="termsSection7Text">本規約は予告なく変更される場合があります。変更後もサービスを利用された場合は、変更後の規約に同意したものとみなします。</p>
       </section>
 
+      <section class="legal-section">
+        <h2 data-i18n="termsSection8Title">8. お問い合わせ</h2>
+        <p data-i18n="termsSection8Text">本サービスに関するお問い合わせは、X（旧Twitter）にてお受けしております。</p>
+        <p class="contact-link">
+          <a href="https://x.com/myu060309" target="_blank" rel="noopener noreferrer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span data-i18n="contactX">@myu060309</span>
+          </a>
+        </p>
+      </section>
+
       <p class="legal-updated" data-i18n="legalUpdated">最終更新：2025年1月</p>
     </main>
 
@@ -123,6 +141,9 @@
         termsSection6Text: 'Steam関連の商標および著作権はValve Corporationおよび各権利者に帰属します。本サービスで表示されるゲーム情報の著作権は各権利者に帰属します。',
         termsSection7Title: '7. 規約の変更',
         termsSection7Text: '本規約は予告なく変更される場合があります。変更後もサービスを利用された場合は、変更後の規約に同意したものとみなします。',
+        termsSection8Title: '8. お問い合わせ',
+        termsSection8Text: '本サービスに関するお問い合わせは、X（旧Twitter）にてお受けしております。',
+        contactX: '@myu060309',
         legalUpdated: '最終更新：2025年1月',
         footerPrivacy: 'プライバシーポリシー',
         footerTerms: '利用規約'
@@ -154,6 +175,9 @@
         termsSection6Text: 'Steam-related trademarks and copyrights belong to Valve Corporation and respective rights holders. Copyrights of game information displayed in this service belong to respective rights holders.',
         termsSection7Title: '7. Changes to Terms',
         termsSection7Text: 'These terms may be changed without notice. Continued use of the service after changes constitutes acceptance of the modified terms.',
+        termsSection8Title: '8. Contact',
+        termsSection8Text: 'For inquiries about this service, please contact us via X (formerly Twitter).',
+        contactX: '@myu060309',
         legalUpdated: 'Last updated: January 2025',
         footerPrivacy: 'Privacy Policy',
         footerTerms: 'Terms of Service'
