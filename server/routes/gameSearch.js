@@ -1,17 +1,18 @@
 /**
  * Steamゲーム検索API
- * Steam公式APIを使用してタグ検索を実現
+ * Steamタグページをスクレイピングして多くのゲームを取得
  */
 
 const express = require('express');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const router = express.Router();
 
 // キャッシュ（10分間有効）
 const cache = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 
-// Steamタグ名からタグIDへのマッピング（主要なタグ）
+// Steamタグ名からタグIDへのマッピング
 const TAG_IDS = {
   // ジャンル
   'action': 19,
@@ -80,6 +81,73 @@ const TAG_IDS = {
 };
 
 /**
+ * Steamタグページからゲームリストを取得
+ */
+async function fetchGamesFromTagPage(tagId) {
+  const url = `https://store.steampowered.com/search/?tags=${tagId}&category1=998&supportedlang=japanese&ndl=1`;
+
+  const response = await axios.get(url, {
+    timeout: 15000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'ja,en;q=0.9',
+      'Cookie': 'birthtime=0; mature_content=1; wants_mature_content=1'
+    }
+  });
+
+  const $ = cheerio.load(response.data);
+  const games = [];
+
+  $('#search_resultsRows a').each((i, el) => {
+    if (i >= 50) return false; // 最大50件
+
+    const $el = $(el);
+    const appid = $el.attr('data-ds-appid');
+    const name = $el.find('.title').text().trim();
+    const priceText = $el.find('.discount_final_price').text().trim() ||
+                      $el.find('.search_price').text().trim();
+
+    // レビュースコア
+    const reviewSummary = $el.find('.search_review_summary').attr('data-tooltip-html') || '';
+    let positive = 0;
+    let negative = 0;
+    const reviewMatch = reviewSummary.match(/(\d+)%.*?(\d[\d,]*)\s*(?:件|user)/i);
+    if (reviewMatch) {
+      const percent = parseInt(reviewMatch[1]);
+      const total = parseInt(reviewMatch[2].replace(/,/g, ''));
+      positive = Math.round(total * percent / 100);
+      negative = total - positive;
+    }
+
+    // 価格パース
+    let price = 0;
+    if (priceText.includes('無料') || priceText.toLowerCase().includes('free')) {
+      price = 0;
+    } else {
+      const priceMatch = priceText.match(/[¥￥]?\s*([\d,]+)/);
+      if (priceMatch) {
+        price = parseInt(priceMatch[1].replace(/,/g, ''));
+      }
+    }
+
+    if (appid && name) {
+      games.push({
+        appid: parseInt(appid),
+        name,
+        price,
+        positive,
+        negative,
+        owners: 'N/A',
+        tags: {}
+      });
+    }
+  });
+
+  return games;
+}
+
+/**
  * タグでゲームを検索
  * GET /api/game-search/tag?tag=Action
  */
@@ -98,7 +166,7 @@ router.get('/tag', async (req, res) => {
     const cacheKey = `tag:${tagLower}`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`[GameSearch] キャッシュヒット: ${tag}`);
+      console.log(`[GameSearch] キャッシュヒット: ${tag} (${Object.keys(cached.data).length}件)`);
       return res.json(cached.data);
     }
 
@@ -106,30 +174,19 @@ router.get('/tag', async (req, res) => {
 
     let games = [];
 
+    // タグIDがある場合はタグページからスクレイピング
     if (tagId) {
-      // Steam Store API - タグでフィルタされたゲームリストを取得
-      const steamResponse = await axios.get('https://store.steampowered.com/api/storesearch/', {
-        params: {
-          term: '*',
-          l: 'japanese',
-          cc: 'JP',
-          category1: tagId,
-          category2: '',
-          page: 1
-        },
-        timeout: 15000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (steamResponse.data && steamResponse.data.items) {
-        games = steamResponse.data.items;
+      try {
+        games = await fetchGamesFromTagPage(tagId);
+        console.log(`[GameSearch] タグページから${games.length}件取得`);
+      } catch (scrapeError) {
+        console.error('[GameSearch] スクレイピングエラー:', scrapeError.message);
       }
     }
 
-    // タグ名で直接検索（フォールバック）
+    // フォールバック: Steam Store Search API
     if (games.length === 0) {
+      console.log('[GameSearch] フォールバック: Store Search API');
       const searchResponse = await axios.get('https://store.steampowered.com/api/storesearch/', {
         params: {
           term: tag,
@@ -143,27 +200,28 @@ router.get('/tag', async (req, res) => {
       });
 
       if (searchResponse.data && searchResponse.data.items) {
-        games = searchResponse.data.items;
+        games = searchResponse.data.items.map(game => ({
+          appid: game.id,
+          name: game.name,
+          price: game.price ? game.price.final : 0,
+          positive: 0,
+          negative: 0,
+          owners: 'N/A',
+          tags: {}
+        }));
       }
     }
 
-    // ゲームデータを整形
+    // オブジェクト形式に変換
     const formattedGames = {};
-    for (const game of games.slice(0, 100)) {
-      formattedGames[game.id] = {
-        appid: game.id,
-        name: game.name,
-        price: game.price ? game.price.final : 0,
-        positive: 0,
-        negative: 0,
-        owners: 'N/A',
-        tags: {}
-      };
+    for (const game of games) {
+      formattedGames[game.appid] = game;
     }
 
     // キャッシュに保存
     cache.set(cacheKey, { data: formattedGames, timestamp: Date.now() });
 
+    console.log(`[GameSearch] 最終結果: ${Object.keys(formattedGames).length}件`);
     res.json(formattedGames);
   } catch (error) {
     console.error('[GameSearch] エラー:', error.message);
@@ -180,20 +238,17 @@ router.get('/tag', async (req, res) => {
 });
 
 /**
- * 人気ゲームを取得（タグID指定）
- * GET /api/game-search/popular?tagId=19
+ * 人気ゲームを取得
+ * GET /api/game-search/popular
  */
 router.get('/popular', async (req, res) => {
   try {
-    const { tagId } = req.query;
-
-    const cacheKey = `popular:${tagId || 'all'}`;
+    const cacheKey = 'popular:all';
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return res.json(cached.data);
     }
 
-    // Steam Store featured games
     const response = await axios.get('https://store.steampowered.com/api/featured/', {
       params: {
         l: 'japanese',
