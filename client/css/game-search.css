@@ -2,19 +2,8 @@
  * Steamゲーム検索ツール スタイル
  */
 
-/* ヘッダー */
-.game-search-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
+/* ヘッダー追加ボタン */
 .game-search-header .tool-header-right {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
@@ -102,10 +91,6 @@
 
 /* レスポンシブ */
 @media (max-width: 600px) {
-  .game-search-header {
-    padding: 12px 16px;
-  }
-
   .game-search-fullscreen-btn,
   .game-search-newwindow-btn {
     width: 32px;

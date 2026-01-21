@@ -11,11 +11,6 @@
   --accent-positive: #22c55e;
 }
 
-/* 言語ボタンは紫色を維持 */
-#store-doctor-page .lang-btn.active {
-  background: #6c5ce7;
-}
-
 /* 機能説明 */
 .doctor-features {
   display: grid;
@@ -361,12 +356,3 @@
   animation: scoreReveal 0.6s ease-out 0.2s both;
 }
 
-/* スマホヘッダー対応 */
-@media (max-width: 600px) {
-  .tool-header .tool-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
