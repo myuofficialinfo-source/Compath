@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Steamゲーム検索 - Game Search Tool</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%238b5cf6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2211%22 cy=%2211%22 r=%228%22/><path d=%22M21 21l-4.35-4.35%22/></svg>">
@@ -188,7 +191,9 @@
         // 複数タグをサーバー側で処理
         const fetchGamesByTags = async (tags) => {
             const tagsParam = tags.join(',');
-            const response = await fetch(`/api/game-search/tag?tags=${encodeURIComponent(tagsParam)}`);
+            // キャッシュバスティング用タイムスタンプ
+            const timestamp = Date.now();
+            const response = await fetch(`/api/game-search/tag?tags=${encodeURIComponent(tagsParam)}&_t=${timestamp}`);
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
