@@ -82,9 +82,12 @@ const TAG_IDS = {
 
 /**
  * Steamタグページからゲームリストを取得
+ * @param {number|number[]} tagIds - 単一または複数のタグID
  */
-async function fetchGamesFromTagPage(tagId) {
-  const url = `https://store.steampowered.com/search/?tags=${tagId}&category1=998&supportedlang=japanese&ndl=1`;
+async function fetchGamesFromTagPage(tagIds) {
+  // 複数タグをカンマ区切りで指定
+  const tagsParam = Array.isArray(tagIds) ? tagIds.join(',') : tagIds;
+  const url = `https://store.steampowered.com/search/?tags=${tagsParam}&category1=998&ndl=1`;
 
   const response = await axios.get(url, {
     timeout: 15000,
@@ -150,38 +153,49 @@ async function fetchGamesFromTagPage(tagId) {
 /**
  * タグでゲームを検索
  * GET /api/game-search/tag?tag=Action
+ * GET /api/game-search/tag?tags=Action,Fantasy,Singleplayer (複数タグ)
  */
 router.get('/tag', async (req, res) => {
   try {
-    const { tag } = req.query;
+    const { tag, tags } = req.query;
 
-    if (!tag) {
+    // 複数タグ対応
+    let tagList = [];
+    if (tags) {
+      tagList = tags.split(',').map(t => t.trim());
+    } else if (tag) {
+      tagList = [tag];
+    } else {
       return res.status(400).json({ error: 'タグが指定されていません' });
     }
 
-    const tagLower = tag.toLowerCase();
-    const tagId = TAG_IDS[tagLower];
+    // タグIDに変換
+    const tagIds = tagList
+      .map(t => TAG_IDS[t.toLowerCase()])
+      .filter(id => id !== undefined);
+
+    if (tagIds.length === 0) {
+      return res.status(400).json({ error: '有効なタグが見つかりません' });
+    }
 
     // キャッシュチェック
-    const cacheKey = `tag:${tagLower}`;
+    const cacheKey = `tags:${tagIds.sort().join(',')}`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`[GameSearch] キャッシュヒット: ${tag} (${Object.keys(cached.data).length}件)`);
+      console.log(`[GameSearch] キャッシュヒット: ${tagList.join(',')} (${Object.keys(cached.data).length}件)`);
       return res.json(cached.data);
     }
 
-    console.log(`[GameSearch] Steam検索: ${tag} (tagId: ${tagId})`);
+    console.log(`[GameSearch] Steam検索: ${tagList.join(',')} (tagIds: ${tagIds.join(',')})`);
 
     let games = [];
 
-    // タグIDがある場合はタグページからスクレイピング
-    if (tagId) {
-      try {
-        games = await fetchGamesFromTagPage(tagId);
-        console.log(`[GameSearch] タグページから${games.length}件取得`);
-      } catch (scrapeError) {
-        console.error('[GameSearch] スクレイピングエラー:', scrapeError.message);
-      }
+    // 複数タグでスクレイピング
+    try {
+      games = await fetchGamesFromTagPage(tagIds);
+      console.log(`[GameSearch] タグページから${games.length}件取得`);
+    } catch (scrapeError) {
+      console.error('[GameSearch] スクレイピングエラー:', scrapeError.message);
     }
 
     // フォールバック: Steam Store Search API

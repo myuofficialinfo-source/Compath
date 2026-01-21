@@ -185,8 +185,10 @@
         };
 
         // サーバーサイドAPIを使用（CORS問題を回避）
-        const fetchGamesByTag = async (tag) => {
-            const response = await fetch(`/api/game-search/tag?tag=${encodeURIComponent(tag)}`);
+        // 複数タグをサーバー側で処理
+        const fetchGamesByTags = async (tags) => {
+            const tagsParam = tags.join(',');
+            const response = await fetch(`/api/game-search/tag?tags=${encodeURIComponent(tagsParam)}`);
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
@@ -241,19 +243,9 @@
                 setHasSearched(true);
 
                 try {
-                    // サーバーサイドAPI経由でSteamSpyにアクセス
-                    const data = await fetchGamesByTag(selectedTags[0]);
+                    // サーバーサイドAPI経由でSteam検索（複数タグ対応）
+                    const data = await fetchGamesByTags(selectedTags);
                     let games = Object.values(data);
-
-                    // 複数タグフィルタリング
-                    if (selectedTags.length > 1) {
-                        games = games.filter(game => {
-                            const gameTags = game.tags ? Object.keys(game.tags) : [];
-                            return selectedTags.every(tag =>
-                                gameTags.some(gt => gt.toLowerCase().includes(tag.toLowerCase()))
-                            );
-                        });
-                    }
 
                     // ソート & 上位50件
                     games = games
@@ -262,7 +254,7 @@
                         .map(game => ({
                             appid: game.appid,
                             name: game.name,
-                            price: game.price ? game.price / 100 : 0,
+                            price: game.price || 0,
                             positive: game.positive || 0,
                             negative: game.negative || 0,
                             owners: game.owners || 'N/A',
