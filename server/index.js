@@ -25,6 +25,9 @@ const visualTrendRoutes = require('./routes/visualTrend');
 const eventsRoutes = require('./routes/events');
 const mockBuilderRoutes = require('./routes/mockBuilder');
 
+// Upstash Redis レート制限サービス
+const { upstashRateLimitMiddleware } = require('./services/rateLimitService');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -92,6 +95,16 @@ const dailyLimiter = (req, res, next) => {
 
 app.use('/api', dailyLimiter);
 app.use('/api', limiter);
+
+// Upstash Redis レート制限（IPベース + グローバル）
+// express-rate-limitの後に適用し、より細かいAI API呼び出し制限を行う
+app.use('/api/analyze', upstashRateLimitMiddleware());
+app.use('/api/reviews', upstashRateLimitMiddleware());
+app.use('/api/store-doctor', upstashRateLimitMiddleware());
+app.use('/api/blue-ocean', upstashRateLimitMiddleware());
+app.use('/api/launch-commander', upstashRateLimitMiddleware());
+app.use('/api/visual-trend', upstashRateLimitMiddleware());
+app.use('/api/mock-builder', upstashRateLimitMiddleware());
 
 // 静的ファイルの提供
 app.use(express.static(path.join(__dirname, '../client')));
