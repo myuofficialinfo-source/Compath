@@ -2,34 +2,6 @@
  * Steamゲーム検索ツール スタイル
  */
 
-/* ヘッダー追加ボタン */
-.game-search-header .tool-header-right {
-  gap: 8px;
-}
-
-/* ボタン */
-.game-search-fullscreen-btn,
-.game-search-newwindow-btn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.game-search-fullscreen-btn:hover,
-.game-search-newwindow-btn:hover {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: white;
-}
-
 /* コンテナ */
 .game-search-container {
   width: 100%;
@@ -38,40 +10,11 @@
   position: relative;
 }
 
-.game-search-container.fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-}
-
 /* iframe */
 .game-search-iframe {
   width: 100%;
   height: 100%;
   border: none;
-}
-
-/* フルスクリーン時の閉じるヒント */
-.game-search-container.fullscreen::before {
-  content: '× ESCで閉じる';
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 10000;
-}
-
-.game-search-container.fullscreen:hover::before {
-  opacity: 1;
 }
 
 /* ホーム画面のカードカラー */
@@ -87,13 +30,4 @@
 }
 .tool-card[id="btn-game-search"] .tool-icon {
   color: #a78bfa;
-}
-
-/* レスポンシブ */
-@media (max-width: 600px) {
-  .game-search-fullscreen-btn,
-  .game-search-newwindow-btn {
-    width: 32px;
-    height: 32px;
-  }
 }
