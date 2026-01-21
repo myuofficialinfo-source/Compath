@@ -184,27 +184,13 @@
             'Exploration': '探索', 'Hack and Slash': 'ハクスラ'
         };
 
-        // 複数のCORSプロキシを用意（フォールバック用）
-        const CORS_PROXIES = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            ''  // 直接アクセス（SteamSpy自体がCORS許可している場合）
-        ];
-
-        // プロキシを使ってフェッチ
-        const fetchWithProxy = async (url) => {
-            for (const proxy of CORS_PROXIES) {
-                try {
-                    const fullUrl = proxy + encodeURIComponent(url);
-                    const response = await fetch(fullUrl);
-                    if (response.ok) {
-                        return await response.json();
-                    }
-                } catch (e) {
-                    console.log(`Proxy ${proxy} failed, trying next...`);
-                }
+        // サーバーサイドAPIを使用（CORS問題を回避）
+        const fetchGamesByTag = async (tag) => {
+            const response = await fetch(`/api/game-search/tag?tag=${encodeURIComponent(tag)}`);
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
             }
-            throw new Error('All proxies failed');
+            return await response.json();
         };
 
         // メインアプリ
@@ -255,9 +241,8 @@
                 setHasSearched(true);
 
                 try {
-                    // SteamSpy API
-                    const apiUrl = `https://steamspy.com/api.php?request=tag&tag=${encodeURIComponent(selectedTags[0])}`;
-                    const data = await fetchWithProxy(apiUrl);
+                    // サーバーサイドAPI経由でSteamSpyにアクセス
+                    const data = await fetchGamesByTag(selectedTags[0]);
                     let games = Object.values(data);
 
                     // 複数タグフィルタリング
