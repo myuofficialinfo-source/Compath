@@ -9,59 +9,6 @@
   background: var(--bg-primary);
 }
 
-/* ツールヘッダー */
-.legal-header.tool-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.legal-header .tool-header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.legal-header .back-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.legal-header .back-button:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-  border-color: var(--accent-primary);
-}
-
-.legal-header .tool-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.legal-header .tool-header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .legal-content {
   flex: 1;
   max-width: 800px;
@@ -176,73 +123,13 @@
   opacity: 0.5;
 }
 
-/* 言語切り替え */
-.legal-header .language-switcher {
-  display: flex;
-  gap: 4px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 4px;
-}
-
-.legal-header .lang-btn {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 16px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.legal-header .lang-btn:hover {
-  color: var(--text-primary);
-}
-
-.legal-header .lang-btn.active {
-  background: #6c5ce7;
-  color: white;
-}
-
 /* レスポンシブ */
 @media (max-width: 768px) {
-  .legal-header.tool-header {
-    padding: 12px 16px;
-  }
-
-  .legal-header .tool-header-left {
-    gap: 12px;
-  }
-
-  .legal-header .tool-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .legal-header .back-button {
-    width: 36px;
-    height: 36px;
-  }
-
   .legal-content {
     padding: 40px 20px;
   }
 
   .legal-section h2 {
     font-size: 1.1rem;
-  }
-
-  .legal-header .language-switcher {
-    padding: 2px;
-  }
-
-  .legal-header .lang-btn {
-    padding: 4px 8px;
-    font-size: 0.7rem;
   }
 }

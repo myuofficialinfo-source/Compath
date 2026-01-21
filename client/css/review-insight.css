@@ -10,62 +10,6 @@
   --accent-glow: rgba(249, 115, 22, 0.3);
 }
 
-/* 言語ボタンは紫色を維持 */
-#review-insight-page .lang-btn.active {
-  background: #6c5ce7;
-}
-
-/* ツールヘッダー */
-.tool-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.tool-header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.back-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.back-button:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-  border-color: var(--accent-primary);
-}
-
-.tool-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.tool-header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 /* メンタルガードモードトグル */
 .mental-guard-toggle {
   display: flex;
@@ -640,37 +584,6 @@
 }
 
 @media (max-width: 600px) {
-  .tool-header {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 16px;
-  }
-
-  .tool-header-left {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .tool-header-left .tool-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .tool-header-right {
-    flex-shrink: 0;
-  }
-
-  .tool-header-right .language-switcher {
-    padding: 2px;
-  }
-
-  .tool-header-right .lang-btn {
-    padding: 4px 8px;
-    font-size: 0.7rem;
-  }
-
   .search-section {
     margin: 40px auto;
   }

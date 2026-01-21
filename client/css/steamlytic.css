@@ -2,18 +2,8 @@
  * Steamlytic - iframe埋め込みスタイル
  */
 
-/* ヘッダー */
-.steamlytic-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
+/* Steamlytic固有のヘッダー追加ボタン */
 .steamlytic-header .tool-header-right {
-  display: flex;
   gap: 8px;
 }
 
@@ -86,26 +76,6 @@
 
 /* スマホ対応 */
 @media (max-width: 600px) {
-  .steamlytic-header {
-    padding: 12px 16px;
-  }
-
-  .steamlytic-header .tool-header-left .tool-title {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .steamlytic-header .language-switcher {
-    padding: 2px;
-  }
-
-  .steamlytic-header .lang-btn {
-    padding: 4px 8px;
-    font-size: 0.7rem;
-  }
-
   .steamlytic-fullscreen-btn,
   .steamlytic-newwindow-btn {
     width: 32px;

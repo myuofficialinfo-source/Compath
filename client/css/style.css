@@ -280,6 +280,92 @@ a:hover {
   background: var(--text-muted);
 }
 
+/* ========================================
+   ツールヘッダー共通スタイル
+   ======================================== */
+.tool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.tool-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tool-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.back-button:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.tool-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* 言語切り替え（ツールヘッダー用） */
+.tool-header .language-switcher {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 4px;
+}
+
+.tool-header .lang-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tool-header .lang-btn:hover {
+  color: var(--text-primary);
+}
+
+.tool-header .lang-btn.active {
+  background: #6c5ce7;
+  color: white;
+}
+
 /* レスポンシブ */
 @media (max-width: 768px) {
   html {
@@ -288,5 +374,34 @@ a:hover {
 
   .container {
     padding: 0 16px;
+  }
+
+  .tool-header {
+    padding: 12px 16px;
+  }
+
+  .tool-header-left {
+    gap: 12px;
+  }
+
+  .tool-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .back-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tool-header .language-switcher {
+    padding: 2px;
+  }
+
+  .tool-header .lang-btn {
+    padding: 4px 8px;
+    font-size: 0.7rem;
   }
 }
