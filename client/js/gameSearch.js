@@ -26,7 +26,11 @@ const GameSearch = {
     page.innerHTML = `
       <header class="tool-header game-search-header">
         <div class="tool-header-left">
-          <button class="back-button" onclick="navigateTo('home')">← Back</button>
+          <button class="back-button" onclick="navigateTo('home')" title="${lang === 'ja' ? 'ホームに戻る' : 'Back to Home'}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
           <h1 class="tool-title">${lang === 'ja' ? 'Steamゲーム検索' : 'Steam Game Search'}</h1>
         </div>
         <div class="tool-header-right">
