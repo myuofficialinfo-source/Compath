@@ -1181,13 +1181,6 @@
   color: var(--text-primary);
 }
 
-.rating-desc {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-  line-height: 1.6;
-}
-
 .rating-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

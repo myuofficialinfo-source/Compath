@@ -1407,31 +1407,25 @@ const ReviewInsight = {
     const container = document.getElementById('overall-rating-section');
 
     // 評価ランクを決定
-    let ratingLabel, ratingEmoji, ratingDesc;
+    let ratingLabel, ratingEmoji;
     if (stats.positiveRate >= 95) {
       ratingLabel = isJa ? '圧倒的に好評' : 'Overwhelmingly Positive';
       ratingEmoji = '🏆';
-      ratingDesc = isJa ? 'ほぼ全てのプレイヤーから高評価を受けている稀有な作品です。' : 'A rare gem loved by almost all players.';
     } else if (stats.positiveRate >= 80) {
       ratingLabel = isJa ? '非常に好評' : 'Very Positive';
       ratingEmoji = '🌟';
-      ratingDesc = isJa ? '多くのプレイヤーに愛されており、購入を検討する価値があります。' : 'Loved by many players and worth considering.';
     } else if (stats.positiveRate >= 70) {
       ratingLabel = isJa ? 'ほぼ好評' : 'Mostly Positive';
       ratingEmoji = '👍';
-      ratingDesc = isJa ? '全体的に好意的な評価ですが、一部改善の余地があります。' : 'Generally positive with some room for improvement.';
     } else if (stats.positiveRate >= 40) {
       ratingLabel = isJa ? '賛否両論' : 'Mixed';
       ratingEmoji = '🤔';
-      ratingDesc = isJa ? '評価が分かれています。自分の好みに合うか確認することをおすすめします。' : 'Opinions are divided. Check if it matches your preferences.';
     } else if (stats.positiveRate >= 20) {
       ratingLabel = isJa ? 'やや不評' : 'Mostly Negative';
       ratingEmoji = '⚠️';
-      ratingDesc = isJa ? '多くの不満点が報告されています。購入前に詳細を確認してください。' : 'Many issues reported. Review details before purchasing.';
     } else {
       ratingLabel = isJa ? '不評' : 'Negative';
       ratingEmoji = '❌';
-      ratingDesc = isJa ? '重大な問題が多数報告されています。' : 'Significant issues have been reported.';
     }
 
     // 主要な良い点・悪い点を抽出（3件ずつ）
@@ -1457,7 +1451,6 @@ const ReviewInsight = {
             <span class="rating-highlight">${ratingLabel}</span>
             <span class="rating-percent">${stats.positiveRate}%</span>
           </div>
-          <p class="rating-desc">${ratingDesc}</p>
 
           <div class="rating-stats-grid">
             <div class="rating-stat-item">
