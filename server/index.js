@@ -25,6 +25,7 @@ const visualTrendRoutes = require('./routes/visualTrend');
 const eventsRoutes = require('./routes/events');
 const mockBuilderRoutes = require('./routes/mockBuilder');
 const gameSearchRoutes = require('./routes/gameSearch');
+const indieCalendarRoutes = require('./routes/indieCalendar');
 
 // Upstash Redis レート制限サービス
 const { upstashRateLimitMiddleware } = require('./services/rateLimitService');
@@ -120,6 +121,7 @@ app.use('/api/visual-trend', visualTrendRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/mock-builder', mockBuilderRoutes);
 app.use('/api/game-search', gameSearchRoutes);
+app.use('/api/indie-calendar', indieCalendarRoutes);
 
 // APIキーの存在確認エンドポイント（キー自体は返さない）
 app.get('/api/status', (req, res) => {
