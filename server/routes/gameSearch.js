@@ -35,7 +35,7 @@ const TAG_IDS = {
   'jrpg': 4434,
   'tactical': 1708,
   'tower defense': 1645,
-  'rhythm': 1756,
+  'rhythm': 701953,
   'card game': 1666,
   'board game': 1770,
   'city builder': 4328,
