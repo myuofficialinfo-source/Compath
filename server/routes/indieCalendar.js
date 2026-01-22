@@ -18,11 +18,13 @@ const MAX_PRICE = 5000;
 /**
  * Steamの近日リリースページからゲームを取得
  * @param {number} page - ページ番号
+ * @param {string} filter - 'comingsoon' or 'popularnew' (最近リリース)
  */
-async function fetchUpcomingGames(page = 0) {
-  // Indieタグ (492) + 近日リリースでフィルタ
+async function fetchUpcomingGames(page = 0, filter = 'comingsoon') {
+  // Indieタグ (492) + フィルタ
   const start = page * 50;
-  const url = `https://store.steampowered.com/search/?sort_by=Released_DESC&tags=492&category1=998&os=win&filter=comingsoon&start=${start}&count=50&ndl=1`;
+  // specials=1 を外して、純粋なリリース日順で取得
+  const url = `https://store.steampowered.com/search/?sort_by=Released_ASC&tags=492&category1=998&os=win&filter=${filter}&start=${start}&count=50&ndl=1`;
 
   const response = await axios.get(url, {
     timeout: 15000,
@@ -66,6 +68,79 @@ async function fetchUpcomingGames(page = 0) {
 
     // 発売日をパース
     const releaseDate = parseReleaseDate(releaseDateText);
+
+    // 具体的な発売日がないゲームは除外（「2027年」「近日登場」など曖昧なものは弾く）
+    if (!releaseDate) {
+      return;
+    }
+
+    if (appid && name) {
+      games.push({
+        appid: parseInt(appid),
+        name,
+        price,
+        releaseDate,
+        releaseDateText,
+        headerImage: `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`
+      });
+    }
+  });
+
+  return games;
+}
+
+/**
+ * 最近リリースされたインディーゲームを取得
+ * @param {number} page - ページ番号
+ */
+async function fetchRecentReleases(page = 0) {
+  const start = page * 50;
+  // 最近リリースされたゲーム（Released_DESC = 新しい順）
+  const url = `https://store.steampowered.com/search/?sort_by=Released_DESC&tags=492&category1=998&os=win&start=${start}&count=50&ndl=1`;
+
+  const response = await axios.get(url, {
+    timeout: 15000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'ja,en;q=0.9',
+      'Cookie': 'birthtime=0; mature_content=1; wants_mature_content=1'
+    }
+  });
+
+  const $ = cheerio.load(response.data);
+  const games = [];
+
+  $('#search_resultsRows a').each((i, el) => {
+    const $el = $(el);
+    const appid = $el.attr('data-ds-appid');
+    const name = $el.find('.title').text().trim();
+
+    const releaseDateText = $el.find('.search_released').text().trim();
+
+    const priceText = $el.find('.discount_final_price').text().trim() ||
+                      $el.find('.search_price').text().trim();
+
+    let price = 0;
+    if (priceText.includes('無料') || priceText.toLowerCase().includes('free')) {
+      price = 0;
+    } else {
+      const priceMatch = priceText.match(/[¥￥]?\s*([\d,]+)/);
+      if (priceMatch) {
+        price = parseInt(priceMatch[1].replace(/,/g, ''));
+      }
+    }
+
+    if (price > MAX_PRICE) {
+      return;
+    }
+
+    const releaseDate = parseReleaseDate(releaseDateText);
+
+    // 具体的な日付がないものは除外
+    if (!releaseDate) {
+      return;
+    }
 
     if (appid && name) {
       games.push({
@@ -115,13 +190,8 @@ function parseReleaseDate(dateStr) {
     return `${enMatch2[3]}-${month}-${enMatch2[1].padStart(2, '0')}`;
   }
 
-  // "Q1 2025" や "2025" のような曖昧な日付
-  const yearMatch = dateStr.match(/(\d{4})/);
-  if (yearMatch) {
-    // 年だけの場合は1月1日として扱う
-    return `${yearMatch[1]}-01-01`;
-  }
-
+  // "Q1 2025" や "2025" のような曖昧な日付は具体的な日付がないのでnullを返す
+  // これにより、具体的な日付を持つゲームが優先される
   return null;
 }
 
@@ -140,17 +210,33 @@ router.get('/upcoming', async (req, res) => {
 
     console.log('[IndieCalendar] Steam検索開始');
 
-    // 複数ページから取得
+    // 複数ページから取得（近日リリース + 最近リリース）
     const allGames = [];
-    for (let page = 0; page < 3; page++) {
-      try {
-        const games = await fetchUpcomingGames(page);
-        allGames.push(...games);
-        console.log(`[IndieCalendar] ページ${page + 1}: ${games.length}件`);
 
-        if (games.length < 50) break; // これ以上ページがない
+    // 近日リリース（comingsoon）から取得（10ページ = 最大500件）
+    for (let page = 0; page < 10; page++) {
+      try {
+        const games = await fetchUpcomingGames(page, 'comingsoon');
+        allGames.push(...games);
+        console.log(`[IndieCalendar] 近日リリース ページ${page + 1}: ${games.length}件`);
+
+        if (games.length < 50) break;
       } catch (err) {
-        console.error(`[IndieCalendar] ページ${page + 1}取得エラー:`, err.message);
+        console.error(`[IndieCalendar] 近日リリース ページ${page + 1}取得エラー:`, err.message);
+        break;
+      }
+    }
+
+    // 最近リリースされたゲームも取得（5ページ = 最大250件）
+    for (let page = 0; page < 5; page++) {
+      try {
+        const games = await fetchRecentReleases(page);
+        allGames.push(...games);
+        console.log(`[IndieCalendar] 最近リリース ページ${page + 1}: ${games.length}件`);
+
+        if (games.length < 50) break;
+      } catch (err) {
+        console.error(`[IndieCalendar] 最近リリース ページ${page + 1}取得エラー:`, err.message);
         break;
       }
     }
@@ -204,7 +290,7 @@ router.get('/month', async (req, res) => {
     } else {
       // キャッシュがない場合は取得
       const games = [];
-      for (let page = 0; page < 3; page++) {
+      for (let page = 0; page < 10; page++) {
         try {
           const pageGames = await fetchUpcomingGames(page);
           games.push(...pageGames);
