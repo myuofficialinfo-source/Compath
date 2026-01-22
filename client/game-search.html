@@ -147,26 +147,41 @@
                 'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation',
                 'Puzzle', 'Platformer', 'Shooter', 'Racing', 'Sports',
                 'Fighting', 'Horror', 'Survival', 'Roguelike', 'Roguelite',
-                'Metroidvania', 'Visual Novel', 'JRPG', 'Tactical', 'Tower Defense'
+                'Metroidvania', 'Visual Novel', 'JRPG', 'Tactical', 'Tower Defense',
+                'Rhythm', 'Card Game', 'Board Game', 'City Builder', 'Management',
+                'Farming Sim', 'Dating Sim', 'FPS', 'Third Person', 'Top-Down',
+                'Side Scroller', 'Bullet Hell', 'Beat em up', 'Point and Click', 'Stealth',
+                'Indie', 'Arcade', 'MMORPG', 'MOBA', 'Souls-like', 'Action RPG',
+                'Dungeon Crawler', 'Party Game', 'Walking Simulator', 'Idle', 'Clicker'
             ],
             themes: [
                 'Fantasy', 'Sci-fi', 'Anime', 'Pixel Graphics', 'Retro',
                 'Dark', 'Cute', 'Atmospheric', 'Comedy', 'Mystery',
-                'Post-apocalyptic', 'Cyberpunk', 'Medieval', 'Historical', 'Western'
+                'Post-apocalyptic', 'Cyberpunk', 'Medieval', 'Historical', 'Western',
+                'Space', 'Zombies', 'Military', 'Nature', 'Underwater',
+                '2D', '3D', 'Isometric', 'Minimalist', 'Colorful',
+                'Music', 'Magic', 'Dragons', 'Mechs', 'Robots', 'Vampire', 'Demons', 'Lovecraftian'
             ],
             features: [
                 'Singleplayer', 'Multiplayer', 'Co-op', 'Online Co-Op', 'Local Co-Op',
                 'PvP', 'Open World', 'Sandbox', 'Procedural Generation', 'Crafting',
-                'Base Building', 'Character Customization', 'Controller', 'VR', 'Early Access'
+                'Base Building', 'Character Customization', 'Controller', 'VR', 'Early Access',
+                'Moddable', 'Level Editor', 'Photo Mode', 'Replay Value', 'Great Soundtrack',
+                'Free to Play', 'Cross-Platform Multiplayer', 'Cloud Saves', 'Achievements',
+                'Split Screen', 'Perma Death', 'Trading'
             ],
             playerStyle: [
                 'Casual', 'Difficult', 'Relaxing', 'Fast-Paced', 'Turn-Based',
-                'Real Time', 'Story Rich', 'Choices Matter', 'Exploration', 'Hack and Slash'
+                'Real Time', 'Story Rich', 'Choices Matter', 'Exploration', 'Hack and Slash',
+                'Competitive', 'PvE', 'Battle Royale', 'Automation', 'Building',
+                'Linear', 'Nonlinear', 'Short', 'Long', 'Replayable',
+                'Loot', 'Class-Based'
             ]
         };
 
         // 日本語タグ名
         const tagTranslations = {
+            // ジャンル
             'Action': 'アクション', 'Adventure': 'アドベンチャー', 'RPG': 'RPG',
             'Strategy': 'ストラテジー', 'Simulation': 'シミュレーション',
             'Puzzle': 'パズル', 'Platformer': 'プラットフォーマー', 'Shooter': 'シューター',
@@ -174,23 +189,44 @@
             'Horror': 'ホラー', 'Survival': 'サバイバル', 'Roguelike': 'ローグライク',
             'Roguelite': 'ローグライト', 'Metroidvania': 'メトロイドヴァニア',
             'Visual Novel': 'ビジュアルノベル', 'JRPG': 'JRPG', 'Tactical': 'タクティカル',
-            'Tower Defense': 'タワーディフェンス',
+            'Tower Defense': 'タワーディフェンス', 'Rhythm': 'リズム', 'Card Game': 'カードゲーム',
+            'Board Game': 'ボードゲーム', 'City Builder': '街づくり', 'Management': '経営',
+            'Farming Sim': '農業', 'Dating Sim': '恋愛', 'FPS': 'FPS', 'Third Person': 'TPS',
+            'Top-Down': '見下ろし型', 'Side Scroller': '横スクロール', 'Bullet Hell': '弾幕',
+            'Beat em up': 'ベルトアクション', 'Point and Click': 'ポイントクリック', 'Stealth': 'ステルス',
+            'Indie': 'インディー', 'Arcade': 'アーケード', 'MMORPG': 'MMORPG', 'MOBA': 'MOBA',
+            'Souls-like': 'ソウルライク', 'Action RPG': 'アクションRPG', 'Dungeon Crawler': 'ダンジョン探索',
+            'Party Game': 'パーティゲーム', 'Walking Simulator': '歩行シム', 'Idle': '放置', 'Clicker': 'クリッカー',
+            // テーマ
             'Fantasy': 'ファンタジー', 'Sci-fi': 'SF', 'Anime': 'アニメ',
             'Pixel Graphics': 'ピクセル', 'Retro': 'レトロ', 'Dark': 'ダーク',
             'Cute': 'キュート', 'Atmospheric': '雰囲気', 'Comedy': 'コメディ',
             'Mystery': 'ミステリー', 'Post-apocalyptic': 'ポストアポカリプス',
             'Cyberpunk': 'サイバーパンク', 'Medieval': '中世', 'Historical': '歴史',
-            'Western': '西部劇',
+            'Western': '西部劇', 'Space': '宇宙', 'Zombies': 'ゾンビ', 'Military': 'ミリタリー',
+            'Nature': '自然', 'Underwater': '水中', '2D': '2D', '3D': '3D',
+            'Isometric': 'アイソメトリック', 'Minimalist': 'ミニマル', 'Colorful': 'カラフル',
+            'Music': '音楽', 'Magic': '魔法', 'Dragons': 'ドラゴン', 'Mechs': 'メカ',
+            'Robots': 'ロボット', 'Vampire': '吸血鬼', 'Demons': '悪魔', 'Lovecraftian': 'クトゥルフ',
+            // 機能
             'Singleplayer': 'シングル', 'Multiplayer': 'マルチ',
             'Co-op': '協力', 'Online Co-Op': 'オンライン協力', 'Local Co-Op': 'ローカル協力',
             'PvP': 'PvP', 'Open World': 'オープンワールド', 'Sandbox': 'サンドボックス',
             'Procedural Generation': '自動生成', 'Crafting': 'クラフト',
             'Base Building': '拠点構築', 'Character Customization': 'キャラメイク',
             'Controller': 'コントローラー', 'VR': 'VR', 'Early Access': '早期アクセス',
+            'Moddable': 'MOD対応', 'Level Editor': 'レベルエディタ', 'Photo Mode': 'フォトモード',
+            'Replay Value': '周回要素', 'Great Soundtrack': '良BGM', 'Free to Play': '基本無料',
+            'Cross-Platform Multiplayer': 'クロスプレイ', 'Cloud Saves': 'クラウドセーブ', 'Achievements': '実績',
+            'Split Screen': '画面分割', 'Perma Death': 'パーマデス', 'Trading': 'トレード',
+            // プレイスタイル
             'Casual': 'カジュアル', 'Difficult': '高難易度', 'Relaxing': 'リラックス',
             'Fast-Paced': 'スピーディ', 'Turn-Based': 'ターン制', 'Real Time': 'リアルタイム',
             'Story Rich': 'ストーリー', 'Choices Matter': '選択重要',
-            'Exploration': '探索', 'Hack and Slash': 'ハクスラ'
+            'Exploration': '探索', 'Hack and Slash': 'ハクスラ', 'Competitive': '競技',
+            'PvE': 'PvE', 'Battle Royale': 'バトロワ', 'Automation': '自動化', 'Building': '建築',
+            'Linear': '一本道', 'Nonlinear': '自由度高', 'Short': '短編', 'Long': '長編', 'Replayable': '周回向け',
+            'Loot': 'ルートドロップ', 'Class-Based': 'クラス制'
         };
 
         // サーバーサイドAPIを使用（CORS問題を回避）
