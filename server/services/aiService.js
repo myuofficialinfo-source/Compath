@@ -20,7 +20,7 @@ function getGeminiModel() {
     }
     geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     geminiModel = geminiClient.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json'
       }
