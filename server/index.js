@@ -33,6 +33,10 @@ const { upstashRateLimitMiddleware } = require('./services/rateLimitService');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Vercel等のプロキシ環境でX-Forwarded-Forヘッダーを信頼する
+// express-rate-limitがクライアントIPを正しく識別するために必要
+app.set('trust proxy', 1);
+
 // セキュリティミドルウェア（開発環境ではCSPを無効化）
 if (process.env.NODE_ENV === 'production') {
   app.use(helmet({
