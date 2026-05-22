@@ -125,6 +125,7 @@ function buildFallbackSummary() {
  * @returns {Promise<Object>} 要約結果
  */
 async function generateSummary(reviews, options = {}) {
+  console.log('[Compath:AI] generateSummary v3 (sanitize+retry+fallback) entry, retry=', !!options._retry);
   const { mentalGuardMode = false, lang = 'ja', _retry } = options;
   const isJa = lang === 'ja';
   const sampleSize = _retry?.sampleSize ?? 20;
