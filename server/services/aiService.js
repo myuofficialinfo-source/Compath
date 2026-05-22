@@ -61,6 +61,63 @@ const WORD_REPLACEMENTS = {
   'broken': 'issues'
 };
 
+// Gemini の非設定可能フィルタ（PROHIBITED_CONTENT）を回避するためのマスキング対象
+// safetySettings では制御できないカテゴリのため、送信前に置換する
+const PROHIBITED_PATTERNS = [
+  // 英語スラー類
+  /n[i!1*]+gg[ae3*]+r?s?/gi,
+  /f[a4*]+gg?[o0*]+ts?/gi,
+  /tr[a4]+nn(y|ies)/gi,
+  /r[e3]+t[a4]+rds?/gi,
+  /ch[i!1]+nks?/gi,
+  // 性的暴力・児童関連
+  /\b(rape|raping|raped|molest(ed|ing)?|pedo(phile)?)\b/gi,
+  /\bchild\s*(porn|sex|abuse)\b/gi,
+  /\bloli(con)?\b/gi,
+  // 自殺・自傷の誘発
+  /\b(kill\s*yourself|kys|hang\s*yourself|commit\s*suicide)\b/gi,
+  // 日本語
+  /(レイプ|強姦|児童ポルノ|首吊れ|自殺しろ)/g
+];
+
+function sanitizeReviewForAI(text, aggressive = false) {
+  if (!text) return '';
+  let s = String(text);
+  for (const p of PROHIBITED_PATTERNS) {
+    s = s.replace(p, '[フィルタ]');
+  }
+  if (aggressive) {
+    s = s.replace(/[A-Z]{5,}/g, m => m.toLowerCase());
+    s = s.replace(/[!！?？]{4,}/g, '!');
+    s = s.replace(/[\u{1F600}-\u{1F9FF}]/gu, '');
+  }
+  return s;
+}
+
+function isProhibitedContentError(error) {
+  return error?.message?.includes('PROHIBITED_CONTENT') ||
+         error?.response?.promptFeedback?.blockReason === 'PROHIBITED_CONTENT';
+}
+
+function buildFallbackSummary() {
+  return {
+    goodPoints: [],
+    badPoints: [],
+    categories: {
+      gameplay: { positive: 0, negative: 0, keywords: [] },
+      graphics: { positive: 0, negative: 0, keywords: [] },
+      story: { positive: 0, negative: 0, keywords: [] },
+      performance: { positive: 0, negative: 0, keywords: [] },
+      price: { positive: 0, negative: 0, keywords: [] },
+      controls: { positive: 0, negative: 0, keywords: [] },
+      bugs: { positive: 0, negative: 0, keywords: [] },
+      localization: { positive: 0, negative: 0, keywords: [] }
+    },
+    blocked: true,
+    blockReason: 'PROHIBITED_CONTENT'
+  };
+}
+
 /**
  * レビューの要約を生成
  * @param {Array} reviews - レビュー配列
@@ -68,8 +125,10 @@ const WORD_REPLACEMENTS = {
  * @returns {Promise<Object>} 要約結果
  */
 async function generateSummary(reviews, options = {}) {
-  const { mentalGuardMode = false, lang = 'ja' } = options;
+  const { mentalGuardMode = false, lang = 'ja', _retry } = options;
   const isJa = lang === 'ja';
+  const sampleSize = _retry?.sampleSize ?? 20;
+  const aggressive = _retry?.aggressive ?? false;
 
   const model = getGeminiModel();
 
@@ -77,15 +136,15 @@ async function generateSummary(reviews, options = {}) {
   const positiveReviews = reviews.filter(r => r.votedUp);
   const negativeReviews = reviews.filter(r => !r.votedUp);
 
-  // 代表的なレビューを抽出（最大20件ずつ）
+  // 代表的なレビューを抽出（サニタイズ後に結合）
   const samplePositive = positiveReviews
-    .slice(0, 20)
-    .map(r => r.review)
+    .slice(0, sampleSize)
+    .map(r => sanitizeReviewForAI(r.review, aggressive))
     .join('\n---\n');
 
   const sampleNegative = negativeReviews
-    .slice(0, 20)
-    .map(r => r.review)
+    .slice(0, sampleSize)
+    .map(r => sanitizeReviewForAI(r.review, aggressive))
     .join('\n---\n');
 
   // メンタルガードモード用のプロンプト
@@ -210,6 +269,17 @@ Respond in the following JSON format in English (6 good points and 6 bad points)
     return JSON.parse(text);
 
   } catch (error) {
+    if (isProhibitedContentError(error)) {
+      if (!_retry) {
+        console.warn('[AI Summary] PROHIBITED_CONTENT detected, retrying with aggressive sanitization (sampleSize=10)');
+        return generateSummary(reviews, {
+          ...options,
+          _retry: { sampleSize: 10, aggressive: true }
+        });
+      }
+      console.warn('[AI Summary] Retry also blocked, returning fallback summary');
+      return buildFallbackSummary();
+    }
     console.error('AI要約エラー:', error);
     throw error;
   }

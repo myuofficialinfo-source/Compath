@@ -62,8 +62,8 @@ router.post('/summary', async (req, res) => {
       lang: lang || 'ja'
     });
 
-    // キャッシュに保存
-    if (cacheAppId) {
+    // キャッシュに保存（PROHIBITED_CONTENTで空フォールバックになった場合は除外）
+    if (cacheAppId && !summary.blocked) {
       cacheService.set('summary', cacheAppId, summary, cacheOptions);
     }
 
