@@ -7,11 +7,19 @@
  * - クライアントには一切公開しない
  */
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 
 // Geminiクライアントの初期化（遅延初期化）
 let geminiClient = null;
 let geminiModel = null;
+
+// ゲームレビューは批判的・過激な表現を含むため、安全フィルタは最高レベルのみブロック
+const SAFETY_SETTINGS = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH }
+];
 
 function getGeminiModel() {
   if (!geminiModel) {
@@ -23,7 +31,8 @@ function getGeminiModel() {
       model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json'
-      }
+      },
+      safetySettings: SAFETY_SETTINGS
     });
   }
   return geminiModel;

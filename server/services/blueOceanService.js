@@ -4,7 +4,7 @@
  */
 
 const axios = require('axios');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 
 const STEAM_SEARCH_API = 'https://store.steampowered.com/api/storesearch';
 const STEAM_API_BASE = 'https://store.steampowered.com';
@@ -16,6 +16,14 @@ let tagNameToIdCache = {};
 // Geminiクライアント
 let geminiModel = null;
 
+// ゲーム関連の批判的・過激な表現に対応するため、安全フィルタは最高レベルのみブロック
+const SAFETY_SETTINGS = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH }
+];
+
 function getGeminiModel() {
   if (!geminiModel) {
     if (!process.env.GEMINI_API_KEY) {
@@ -26,7 +34,8 @@ function getGeminiModel() {
       model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json'
-      }
+      },
+      safetySettings: SAFETY_SETTINGS
     });
   }
   return geminiModel;
